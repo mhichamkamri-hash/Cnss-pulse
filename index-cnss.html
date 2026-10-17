@@ -1,0 +1,845 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="CNSS Pulse">
+<link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="manifest" href="manifest.webmanifest">
+<style>html{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>CNSS Pulse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a phone-sized executive app (overview / alerts / ask) on a quiet stage; presenter notes beside it on wide screens, full-bleed app on phones. */
+:root{
+  --stage:#D8DFDE; --bg:#EEF2F1; --surface:#FFFFFF; --surface-2:#F5F8F7;
+  --ink:#13202A; --ink-2:#475763; --ink-3:#788893; --line:#DCE3E2;
+  --accent:#0B6E79; --accent-ink:#FFFFFF; --accent-soft:#D5EBEC;
+  --ok:#1E8449; --ok-soft:#DCF0E3; --warn:#AD6800; --warn-soft:#FAEACD; --crit:#C0352A; --crit-soft:#F7DDD9;
+  --shadow:0 18px 50px rgba(19,32,42,.18);
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --stage:#060B0E; --bg:#0D151B; --surface:#15212A; --surface-2:#1B2832;
+  --ink:#E5EDF0; --ink-2:#A7B6BF; --ink-3:#73848E; --line:#25343E;
+  --accent:#4BB9C4; --accent-ink:#06191C; --accent-soft:#143A40;
+  --ok:#4CC27E; --ok-soft:#14301E; --warn:#E9A73B; --warn-soft:#382A10; --crit:#F06A5D; --crit-soft:#3B1916;
+  --shadow:0 18px 50px rgba(0,0,0,.5); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --stage:#060B0E; --bg:#0D151B; --surface:#15212A; --surface-2:#1B2832;
+  --ink:#E5EDF0; --ink-2:#A7B6BF; --ink-3:#73848E; --line:#25343E;
+  --accent:#4BB9C4; --accent-ink:#06191C; --accent-soft:#143A40;
+  --ok:#4CC27E; --ok-soft:#14301E; --warn:#E9A73B; --warn-soft:#382A10; --crit:#F06A5D; --crit-soft:#3B1916;
+  --shadow:0 18px 50px rgba(0,0,0,.5); color-scheme:dark}
+
+html,body{height:100%}
+body{background:var(--stage);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+*,*::before,*::after{box-sizing:border-box}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+button:focus-visible,input:focus-visible,.row:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:var(--f-mono);font-size:.78rem;letter-spacing:.01em}
+
+/* stage */
+.stage{height:100%;display:flex;justify-content:center;align-items:center;gap:48px;padding-block:24px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.device{position:relative;width:390px;max-width:100%;height:min(844px,100%);background:var(--bg);border-radius:38px;overflow:hidden;box-shadow:var(--shadow);border:1px solid var(--line);display:flex;flex-direction:column;flex:none}
+@media (max-width:520px){
+  .stage{padding:0}
+  .device{width:100%;height:100%;border-radius:0;border:0;box-shadow:none}
+}
+.presenter{width:340px;flex:none;display:flex;flex-direction:column;gap:20px}
+@media (max-width:860px){.presenter{display:none}}
+
+/* app chrome */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:18px 10px;
+  padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px))}
+.org{display:flex;flex-direction:column;min-width:0}
+.org b{font-family:var(--f-display);font-stretch:85%;font-weight:700;font-size:1.05rem;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.live{display:flex;align-items:center;gap:6px;color:var(--ink-3)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px var(--ok-soft);flex:none}
+@media (prefers-reduced-motion:no-preference){.dot{animation:pulse 2.4s ease-in-out infinite}}
+@keyframes pulse{50%{box-shadow:0 0 0 6px transparent}}
+.pill-btn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:.8rem;font-weight:600;color:var(--ink-2);white-space:nowrap}
+
+.screens{flex:1;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.screen{display:flex;flex-direction:column;gap:18px;padding-block:6px 24px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line);background:var(--surface);padding-block:8px 10px;
+  padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.72rem;font-weight:600;color:var(--ink-3);padding:4px 0;position:relative}
+.tab svg{width:22px;height:22px}
+.tab[aria-selected="true"]{color:var(--accent)}
+.badge{position:absolute;top:0;left:calc(50% + 6px);min-width:17px;height:17px;border-radius:9px;background:var(--crit);color:#fff;font-size:.66rem;display:grid;place-items:center;padding:0 4px}
+
+/* overview */
+.hero{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center}
+.ring{width:104px;height:104px;position:relative}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .v{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring .v b{font-family:var(--f-display);font-weight:800;font-size:2.1rem;line-height:1;font-stretch:80%}
+.ring .v span{font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);margin-top:3px}
+.hero h1{font-family:var(--f-display);font-stretch:82%;font-weight:700;font-size:1.6rem;line-height:1.08;margin:0;text-wrap:balance}
+.hero p{margin:6px 0 0;color:var(--ink-2);font-size:.86rem}
+
+.brief{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.brief .lbl{display:flex;align-items:center;gap:8px;font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;font-weight:700;color:var(--accent)}
+.brief p{margin:0;font-size:.92rem}
+.brief .acts{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border-radius:999px;padding:8px 14px;font-size:.82rem;font-weight:600;background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:var(--accent-soft);color:var(--accent)}
+
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;margin:0 2px -8px}
+.sec-h h2{margin:0;font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-3);font-weight:700}
+.sec-h span{font-size:.75rem;color:var(--ink-3)}
+
+.list{background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.row{display:grid;grid-template-columns:4px 1fr auto auto;gap:12px;align-items:center;width:100%;text-align:left;padding:12px 14px 12px 0;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row .stripe{align-self:stretch;border-radius:0 3px 3px 0;background:transparent}
+.row.warn .stripe{background:var(--warn)} .row.crit .stripe{background:var(--crit)}
+.row .t{min-width:0}
+.row .t b{display:block;font-weight:600;font-size:.93rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .t small{display:block;color:var(--ink-3);font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row.warn .t small{color:var(--warn)} .row.crit .t small{color:var(--crit)}
+.row .sc{font-family:var(--f-display);font-weight:700;font-stretch:80%;font-size:1.25rem;min-width:30px;text-align:right}
+.row.warn .sc{color:var(--warn)} .row.crit .sc{color:var(--crit)}
+.spark{width:60px;height:24px}
+
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:.72rem;font-weight:700;letter-spacing:.02em}
+.chip.ok{background:var(--ok-soft);color:var(--ok)} .chip.warn{background:var(--warn-soft);color:var(--warn)} .chip.crit{background:var(--crit-soft);color:var(--crit)} .chip.info{background:var(--accent-soft);color:var(--accent)}
+
+.secu{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px 16px;display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-items:center}
+.secu .big{grid-row:span 2;font-family:var(--f-display);font-weight:800;font-stretch:78%;font-size:2.3rem;line-height:1;color:var(--accent)}
+.secu b{font-size:.92rem}
+.secu small{color:var(--ink-2);font-size:.8rem}
+
+.sites{display:flex;flex-wrap:wrap;gap:8px}
+.site{display:inline-flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 11px;font-size:.8rem}
+.site i{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.site.warn i{background:var(--warn)} .site.crit i{background:var(--crit)}
+.foot{font-size:.72rem;color:var(--ink-3);text-align:center;padding-top:4px}
+
+/* alerts */
+.alert{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:13px 15px;display:flex;flex-direction:column;gap:6px;text-align:left;width:100%}
+.alert .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.alert p{margin:0;font-size:.9rem}
+.alert.past{background:transparent}
+.alert.past p{color:var(--ink-2)}
+.note{font-size:.8rem;color:var(--ink-3);background:var(--surface-2);border-radius:14px;padding:12px 14px;margin:0}
+
+/* ask */
+.ask{display:flex;flex-direction:column;height:100%}
+.ask .scroll{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding-block:6px 14px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.msg{max-width:88%;border-radius:18px;padding:10px 14px;font-size:.9rem;line-height:1.5;overflow-wrap:anywhere}
+.msg.me{align-self:flex-end;background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:6px}
+.msg.ai{align-self:flex-start;background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:6px}
+.msg.ai ul{margin:6px 0 0;padding-left:18px}
+.msg.ai p{margin:0 0 6px} .msg.ai p:last-child{margin:0}
+.msg.ai .src{display:block;margin-top:8px;font-size:.7rem;color:var(--ink-3)}
+.msg.think{color:var(--ink-3)}
+.sugg{display:flex;flex-wrap:wrap;gap:8px}
+.sugg button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 12px;font-size:.8rem;text-align:left}
+.composer{display:flex;gap:8px;border-top:1px solid var(--line);background:var(--surface);padding-block:10px;
+  padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px))}
+.composer input{flex:1;min-width:0;border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:10px 14px;font:inherit;font-size:.9rem;color:var(--ink)}
+.composer button{width:42px;height:42px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;flex:none}
+.composer button svg{width:18px;height:18px}
+.ask-h{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ask-h h1{margin:0;font-family:var(--f-display);font-stretch:82%;font-size:1.5rem}
+
+/* push banner */
+.push{position:absolute;left:10px;right:10px;top:10px;z-index:30;background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:12px 14px;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;text-align:left}
+.push .ic{grid-row:span 2;width:34px;height:34px;border-radius:9px;background:var(--crit);color:#fff;display:grid;place-items:center;font-family:var(--f-display);font-weight:800}
+.push b{font-size:.85rem} .push span{font-size:.84rem;color:var(--ink-2)}
+@media (prefers-reduced-motion:no-preference){.push{animation:drop .35s ease-out}}
+@keyframes drop{from{transform:translateY(-120%)}}
+
+/* sheets */
+.scrim{position:absolute;inset:0;background:rgba(8,14,18,.38);z-index:20}
+.sheet{position:absolute;left:0;right:0;bottom:0;max-height:92%;z-index:21;background:var(--bg);border-radius:24px 24px 0 0;display:flex;flex-direction:column;box-shadow:var(--shadow)}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:rise .28s ease-out}}
+@keyframes rise{from{transform:translateY(100%)}}
+.sheet .grab{width:38px;height:5px;border-radius:3px;background:var(--line);margin:8px auto 0;flex:none}
+.sheet .body{overflow-y:auto;display:flex;flex-direction:column;gap:16px;padding-block:10px 26px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.sheet .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.sheet h2{margin:4px 0 0;font-family:var(--f-display);font-stretch:82%;font-weight:700;font-size:1.5rem;line-height:1.1;text-wrap:balance}
+.sheet .proto{color:var(--ink-3)}
+.x{width:32px;height:32px;border-radius:50%;background:var(--surface);border:1px solid var(--line);display:grid;place-items:center;flex:none}
+.lead{margin:0;font-size:.95rem}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px;min-width:0}
+.kpi small{display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);font-weight:700}
+.kpi b{display:block;font-family:var(--f-display);font-stretch:82%;font-weight:700;font-size:1.35rem;margin-top:2px}
+.kpi span{display:block;font-size:.74rem;color:var(--ink-3)}
+.kpi.bad b{color:var(--warn)} .kpi.vbad b{color:var(--crit)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px}
+.card h3{margin:0 0 8px;font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-3)}
+.card p{margin:0 0 8px;font-size:.9rem} .card p:last-child{margin:0}
+.ev{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.ev li{display:grid;grid-template-columns:16px 1fr;gap:8px;font-size:.84rem}
+.ev li::before{content:"";width:8px;height:8px;margin-top:6px;border-radius:2px;background:var(--accent)}
+.chart{width:100%;height:auto;display:block}
+.demo-group{display:flex;flex-direction:column;gap:8px}
+.demo-group h3{margin:0;font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-3)}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px}
+.seg button{border-radius:9px;padding:9px;font-weight:600;font-size:.85rem;color:var(--ink-2)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.dbtn{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:11px 14px;font-weight:600;font-size:.88rem;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.dbtn.primary{background:var(--crit);border-color:var(--crit);color:#fff}
+.dbtn small{font-weight:400;opacity:.8;font-size:.76rem}
+
+/* presenter panel */
+.presenter .eyebrow{font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);font-weight:700}
+.presenter h2{margin:4px 0 6px;font-family:var(--f-display);font-stretch:80%;font-size:2.1rem;line-height:1.02}
+.presenter p{margin:0;color:var(--ink-2);font-size:.9rem;max-width:62ch}
+.flow{display:flex;flex-direction:column;gap:0;border-left:2px solid var(--line);margin-left:6px}
+.flow div{position:relative;padding:0 0 12px 18px;font-size:.84rem;color:var(--ink-2)}
+.flow div b{display:block;color:var(--ink);font-size:.88rem}
+.flow div::before{content:"";position:absolute;left:-7px;top:4px;width:12px;height:12px;border-radius:50%;background:var(--bg);border:2px solid var(--accent)}
+</style>
+<style>
+.tabs{grid-template-columns:repeat(4,1fr)}
+.tab{font-size:.68rem}
+.month{display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface);border:1px solid var(--line);border-radius:18px}
+.month div{padding:12px 12px;border-left:1px solid var(--line);min-width:0}
+.month div:first-child{border-left:0}
+.month b{display:block;font-family:var(--f-display);font-stretch:80%;font-weight:800;font-size:1.45rem;line-height:1.1}
+.month span{display:block;font-size:.72rem;color:var(--ink-3);line-height:1.25;margin-top:2px}
+.threat{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+.threat b{font-size:.92rem} .threat small{color:var(--ink-2);font-size:.8rem}
+.row .ag{font-family:var(--f-mono);font-size:.74rem;color:var(--ink-3);white-space:nowrap}
+.agl{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.agl li{display:flex;justify-content:space-between;gap:10px;font-size:.86rem;border-top:1px solid var(--line);padding-top:6px}
+.agl li:first-child{border-top:0;padding-top:0}
+.agl li span:last-child{white-space:nowrap}
+</style>
+
+<!-- Données d'exemple. Structure inspirée des KPI de service nGeniusONE, des événements Arbor DDoS et des détections Omnis (NDR).
+     Remplacez ce bloc par un export de votre modèle de données NETSCOUT. Aucune donnée réelle de la CNSS. -->
+<script type="application/json" id="dataset">
+{
+ "org":"CNSS","unit":"Direction Générale","usersWord":"assurés et employeurs",
+ "month":{"availability":"99,94 %","availabilityLabel":"Disponibilité des services digitaux en octobre","majors":"2","majorsLabel":"Incidents majeurs ce mois-ci","ddos":"41","ddosLabel":"Attaques DDoS bloquées ce mois-ci"},
+ "services":[
+  {"id":"amo","name":"AMO · tiers payant","protocol":"API · pharmacies et cliniques conventionnées","volume":"5 600 validations/heure","respLabel":"Validation des droits",
+   "kpi":{"avail":98.9,"resp":4100,"respBase":350,"fail":4.8,"failBase":0.3},"status":"warn","score":73,
+   "incident":{"minutesAgo":34,"headline":"Validation des droits lente pour 1 pharmacie sur 5",
+    "summary":"Les pharmacies et cliniques conventionnées attendent 8 à 12 secondes pour vérifier les droits d'un assuré, surtout à Casablanca et Marrakech. Les assurés patientent au comptoir, mais les prises en charge aboutissent.",
+    "cause":"Le service de vérification des droits répond en 4,1 s au lieu de 350 ms. La base de données des droits AMO est ralentie par un traitement de masse lancé en heures ouvrées.",
+    "impact":"Environ 2 300 validations par heure retardées, dans près de 900 pharmacies.",
+    "action":"L'équipe exploitation a suspendu le traitement. Retour à la normale attendu sous 20 minutes.",
+    "sites":["Casablanca-Settat","Marrakech-Safi"],
+    "evidence":["Temps de réponse du service de droits : 4 100 ms (habituel 350 ms)","Temps d'attente de la base des droits AMO multiplié par 9 depuis {start}","Réseau vers les partenaires normal : 22 ms aller-retour","Délais dépassés côté pharmacies : 4,8 % (habituel 0,3 %)"]}},
+  {"id":"damancom","name":"Damancom · employeurs","protocol":"HTTPS · portail et échanges EDI","volume":"1 840 sessions/min","respLabel":"Chargement des pages",
+   "kpi":{"avail":99.95,"resp":620,"respBase":600,"fail":0.2,"failBase":0.2},"status":"ok","score":96},
+  {"id":"macnss","name":"Portail MACNSS · assurés","protocol":"HTTPS · portail web et mobile","volume":"2 900 sessions/min","respLabel":"Chargement des pages",
+   "kpi":{"avail":99.9,"resp":540,"respBase":520,"fail":0.4,"failBase":0.4},"status":"ok","score":95},
+  {"id":"taawidaty","name":"TAAWIDATY · prestations","protocol":"HTTPS · dépôt des demandes","volume":"640 demandes/heure","respLabel":"Dépôt d'une demande",
+   "kpi":{"avail":99.9,"resp":1100,"respBase":1050,"fail":0.3,"failBase":0.3},"status":"ok","score":95},
+  {"id":"guichet","name":"Application des agences","protocol":"Application métier · data center","volume":"2 450 agents connectés","respLabel":"Réponse au guichet",
+   "kpi":{"avail":99.8,"resp":480,"respBase":420,"fail":0.5,"failBase":0.4},"status":"ok","score":93},
+  {"id":"paiements","name":"Pensions et allocations","protocol":"Échanges bancaires · SFTP","volume":"Prochain virement : 25 du mois","respLabel":"Transfert des fichiers",
+   "kpi":{"avail":100,"resp":2.1,"respBase":2.0,"fail":0,"failBase":0,"respUnit":"min"},"status":"ok","score":98},
+  {"id":"contact","name":"Centre de contacts","protocol":"SIP · téléphonie et SVI","volume":"310 appels en cours","respLabel":"Mise en relation",
+   "kpi":{"avail":99.7,"resp":1300,"respBase":1250,"fail":0.6,"failBase":0.6},"status":"ok","score":94},
+  {"id":"bureau","name":"Messagerie et bureautique","protocol":"Microsoft 365 · internet","volume":"4 800 utilisateurs","respLabel":"Ouverture de la messagerie",
+   "kpi":{"avail":99.9,"resp":900,"respBase":880,"fail":0.2,"failBase":0.2},"status":"ok","score":96}
+ ],
+ "regions":[
+  {"id":"fes","name":"Fès-Meknès","agencies":13,"agents":265,"status":"warn","score":77,"kpi":{"resp":3200,"respBase":450,"backup":3,"down":0},
+   "incident":{"minutesAgo":131,"headline":"3 agences fonctionnent sur la liaison de secours 4G",
+    "summary":"Les agences Fès Saïss, Meknès Hamria et Taza restent ouvertes, mais chaque opération au guichet prend environ 3 secondes au lieu d'une demi-seconde. Les files d'attente s'allongent.",
+    "cause":"La liaison principale de l'opérateur vers ces 3 agences est coupée depuis {start}. Le trafic est passé automatiquement sur la liaison de secours 4G, moins rapide.",
+    "impact":"Environ 60 agents ralentis et près de 400 visiteurs attendus ce matin dans ces agences.",
+    "action":"Ticket ouvert chez l'opérateur, rétablissement annoncé vers 12:00.",
+    "sites":["Fès Saïss","Meknès Hamria","Taza"],
+    "evidence":["Liaison principale : aucun trafic depuis {start} sur les 3 sites","Liaison de secours 4G : 92 % utilisée, 180 ms de latence","Réponse au guichet : 3,2 s (habituel 0,45 s)","Les 10 autres agences de la région sont normales"]}},
+  {"id":"casa","name":"Casablanca-Settat","agencies":28,"agents":610,"status":"ok","score":94,"kpi":{"resp":430,"respBase":420,"backup":0,"down":0}},
+  {"id":"rabat","name":"Rabat-Salé-Kénitra","agencies":16,"agents":420,"status":"ok","score":95,"kpi":{"resp":400,"respBase":400,"backup":0,"down":0}},
+  {"id":"tanger","name":"Tanger-Tétouan-Al Hoceïma","agencies":12,"agents":230,"status":"ok","score":94,"kpi":{"resp":440,"respBase":430,"backup":0,"down":0}},
+  {"id":"marrakech","name":"Marrakech-Safi","agencies":12,"agents":240,"status":"ok","score":93,"kpi":{"resp":460,"respBase":440,"backup":0,"down":0}},
+  {"id":"souss","name":"Souss-Massa","agencies":9,"agents":170,"status":"ok","score":95,"kpi":{"resp":450,"respBase":440,"backup":0,"down":0}},
+  {"id":"oriental","name":"Oriental","agencies":9,"agents":160,"status":"ok","score":94,"kpi":{"resp":470,"respBase":460,"backup":0,"down":0}},
+  {"id":"beni","name":"Béni Mellal-Khénifra","agencies":7,"agents":120,"status":"ok","score":95,"kpi":{"resp":450,"respBase":450,"backup":0,"down":0}},
+  {"id":"draa","name":"Drâa-Tafilalet","agencies":6,"agents":95,"status":"ok","score":92,"kpi":{"resp":520,"respBase":500,"backup":0,"down":0}},
+  {"id":"guelmim","name":"Guelmim-Oued Noun","agencies":3,"agents":45,"status":"ok","score":94,"kpi":{"resp":510,"respBase":500,"backup":0,"down":0}},
+  {"id":"laayoune","name":"Laâyoune-Sakia El Hamra","agencies":3,"agents":50,"status":"ok","score":95,"kpi":{"resp":500,"respBase":490,"backup":0,"down":0}},
+  {"id":"dakhla","name":"Dakhla-Oued Ed-Dahab","agencies":2,"agents":25,"status":"ok","score":96,"kpi":{"resp":530,"respBase":520,"backup":0,"down":0}}
+ ],
+ "scenarios":{
+  "service":{"target":"damancom","kind":"service","status":"crit","score":45,"kpi":{"avail":81.6,"resp":2600,"fail":18.4},
+   "incident":{"minutesAgo":2,"headline":"18 % des employeurs ne peuvent plus se connecter à Damancom",
+    "summary":"Les employeurs et les fiduciaires reçoivent une erreur à la connexion. Ceux qui sont déjà connectés poursuivent leurs déclarations normalement.",
+    "cause":"Un des deux répartiteurs de charge du data center renvoie des erreurs depuis {start}, juste après une mise à jour de certificat. Ce n'est pas une attaque : le volume de trafic est normal.",
+    "impact":"Environ 330 connexions échouées par minute. Risque de retard dans les déclarations et de hausse des appels au centre de contacts.",
+    "action":"L'équipe réseau a été alertée automatiquement. Recommandé : retirer ce répartiteur du service et basculer tout le trafic sur le second.",
+    "sites":["Toutes les régions"],
+    "evidence":["Erreurs de connexion : 18,4 % (habituel 0,1 %)","100 % des erreurs passent par le même répartiteur de charge","Volume de trafic normal, aucune signature d'attaque DDoS","Serveurs applicatifs Damancom sains : réponse en 240 ms"]}},
+  "agency":{"target":"casa","kind":"region","status":"crit","score":58,"kpi":{"resp":0,"backup":0,"down":2},
+   "incident":{"minutesAgo":1,"headline":"2 agences de Casablanca coupées du réseau",
+    "summary":"Les agences Casa-Anfa et Casa-Maârif ne peuvent plus accéder aux applications. Les guichets sont à l'arrêt et l'accueil oriente les visiteurs vers les agences voisines.",
+    "cause":"Les deux liaisons, principale et secours, sont tombées en même temps à {start}. Les deux agences sont raccordées au même point d'accès opérateur : une coupure physique est probable.",
+    "impact":"Environ 45 agents sans accès et près de 300 visiteurs attendus d'ici midi.",
+    "action":"Ticket prioritaire ouvert chez l'opérateur. Recommandé : informer les assurés par SMS et renforcer les agences Casa-Bourgogne et Casa-Hay Hassani.",
+    "sites":["Casa-Anfa","Casa-Maârif"],
+    "evidence":["Aucun trafic depuis {start} sur les liaisons principale et secours des 2 agences","Les 2 agences partagent le même point d'accès opérateur","Les 26 autres agences de la région sont normales","Aucune anomalie côté data center"]}}
+ },
+ "security":{"attacks24h":3,"largest":"6,8 Gbps HTTP flood","time":"02:40","target":"le portail Damancom","result":"Bloquée automatiquement en 35 secondes. Aucun impact pour les employeurs."},
+ "threats":{"count":1,"time":"08:12","text":"Un poste de l'agence d'Agadir a tenté de joindre un domaine malveillant connu. Connexion bloquée et poste signalé au SOC pour analyse."},
+ "history":[
+  {"when":"Aujourd'hui 08:12","sev":"info","text":"Menace détectée sur un poste de l'agence d'Agadir. Connexion bloquée, SOC prévenu."},
+  {"when":"Aujourd'hui 02:40","sev":"info","text":"Attaque DDoS de 6,8 Gbps contre le portail Damancom bloquée automatiquement. Aucun impact."},
+  {"when":"Hier 16:05","sev":"warn","text":"Centre de contacts : temps d'attente élevé pendant 25 minutes. Résolu."},
+  {"when":"10 oct. 23:40","sev":"warn","text":"Pic de déclarations Damancom à la date limite : charge x3, service resté disponible."}],
+ "suggestions":["Qu'est-ce qui ne va pas en ce moment ?","Combien d'agences sont impactées ?","Y a-t-il eu des cyberattaques cette nuit ?","Résume la situation pour mon comité de direction","What is the impact on citizens?"]
+}
+</script>
+
+</head><body>
+<div class="stage">
+  <div class="device" id="device">
+    <header class="topbar">
+      <div class="org">
+        <b id="orgName">CNSS · Direction Générale</b>
+        <span class="live mono"><i class="dot" id="liveDot"></i><span id="updated">En direct</span></span>
+      </div>
+      <button class="pill-btn" id="demoBtn" aria-haspopup="dialog">Démo</button>
+    </header>
+
+    <button class="push" id="push" hidden></button>
+
+    <main class="screens" id="screens">
+      <section class="screen" id="scr-overview" aria-label="Vue d'ensemble"></section>
+      <section class="screen" id="scr-regions" aria-label="Agences" hidden></section>
+      <section class="screen" id="scr-alerts" aria-label="Alertes" hidden></section>
+      <section class="ask" id="scr-ask" aria-label="Copilot" hidden>
+        <div class="scroll" id="chat"></div>
+        <form class="composer" id="composer">
+          <input id="q" type="text" autocomplete="off" placeholder="Posez une question sur vos services…" aria-label="Votre question">
+          <button type="submit" aria-label="Envoyer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </form>
+      </section>
+    </main>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="overview" aria-selected="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>Services</button>
+      <button class="tab" role="tab" data-tab="regions" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V9l8-5 8 5v12"/><path d="M9 21v-6h6v6"/></svg>Agences<span class="badge" id="badgeR" hidden>0</span></button>
+      <button class="tab" role="tab" data-tab="alerts" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 1 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></svg>Alertes<span class="badge" id="badge" hidden>0</span></button>
+      <button class="tab" role="tab" data-tab="ask" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 10h8M8 13h5"/></svg>Copilot</button>
+    </nav>
+
+    <div class="scrim" id="scrim" hidden></div>
+    <div class="sheet" id="sheet" role="dialog" aria-modal="true" hidden><div class="grab"></div><div class="body" id="sheetBody"></div></div>
+  </div>
+
+  <aside class="presenter" aria-label="À propos du prototype">
+    <div>
+      <div class="eyebrow">Prototype · CNSS</div>
+      <h2>Toute la CNSS dans la poche du Directeur Général</h2>
+      <p>Les services aux assurés et aux employeurs, les agences de chaque région et la cybersécurité, sur un seul écran. Des réponses en français clair, appuyées sur les données réseau.</p>
+    </div>
+    <div class="flow">
+      <div><b>Sondes InfiniStream</b>Capture des paquets au data center, à l'entrée internet et sur le réseau des agences</div>
+      <div><b>nGeniusONE · Smart Data</b>Temps de réponse, échecs et disponibilité par service et par agence</div>
+      <div><b>Arbor + Omnis Cyber Intelligence</b>Attaques DDoS bloquées et menaces détectées sur le réseau</div>
+      <div><b>nGenius Copilot + agent DG</b>Vérifie toutes les 5 minutes, mesure l'impact pour les assurés, décide s'il faut alerter</div>
+      <div><b>Application mobile</b>Lecture seule, accès SSO et MFA</div>
+    </div>
+    <div class="demo-group" id="deskDemo"></div>
+    <p class="mono">Données fictives à des fins de démonstration. Prototype NETSCOUT.</p>
+  </aside>
+</div>
+
+<script type="application/json" id="xf-data">{
+ "service:amo":{"actions":[
+   {"title":"Confirmer l’arrêt du traitement de masse","owner":"Exploitation","eta":"5 min","effect":"Retour à 350 ms pour les pharmacies","inProgress":true},
+   {"title":"Reprogrammer ce traitement la nuit","owner":"DSI","eta":"Demain","effect":"Évite que l’incident se reproduise","recommended":true},
+   {"title":"Informer les pharmacies via le portail partenaires","owner":"Communication","eta":"15 min","effect":"Moins d’appels des partenaires"}],
+  "impact":[{"label":"Pharmacies concernées","value":900},{"label":"Validations retardées","perMin":38}]},
+ "region:fes":{"actions":[
+   {"title":"Relancer l’opérateur sur le ticket ouvert","owner":"Réseau","eta":"10 min","effect":"Rétablissement avant 12:00","inProgress":true},
+   {"title":"Orienter les assurés vers MACNSS et TAAWIDATY","owner":"Agences","eta":"5 min","effect":"Files d’attente plus courtes","recommended":true},
+   {"title":"Prioriser les opérations urgentes au guichet","owner":"Direction régionale","eta":"15 min","effect":"Les dossiers urgents passent en premier"}],
+  "impact":[{"label":"Agents ralentis","value":60},{"label":"Visiteurs attendus ce matin","value":400}]},
+ "service:damancom":{"actions":[
+   {"title":"Retirer le répartiteur défaillant du service","owner":"Réseau","eta":"3 min","effect":"Tous les employeurs peuvent se reconnecter","recommended":true},
+   {"title":"Annuler la mise à jour du certificat","owner":"Sécurité","eta":"15 min","effect":"Corrige la cause"},
+   {"title":"Afficher un message sur Damancom et au centre de contacts","owner":"Communication","eta":"10 min","effect":"Moins d’appels d’employeurs"}],
+  "impact":[{"label":"Connexions échouées","perMin":330},{"label":"Appels supplémentaires","perMin":12}],"escalateMin":30},
+ "region:casa":{"actions":[
+   {"title":"Escalader le ticket prioritaire chez l’opérateur","owner":"Réseau","eta":"5 min","effect":"Intervention terrain plus rapide","recommended":true},
+   {"title":"Envoyer un SMS aux assurés ayant rendez-vous","owner":"Relation client","eta":"15 min","effect":"Évite des déplacements inutiles"},
+   {"title":"Renforcer Casa-Bourgogne et Casa-Hay Hassani","owner":"Direction régionale","eta":"30 min","effect":"Absorbe les visiteurs réorientés"}],
+  "impact":[{"label":"Agents sans accès","value":45},{"label":"Visiteurs attendus d’ici midi","value":300}],"escalateMin":30}
+}
+</script>
+<script>
+/* Executive features: next best actions, business impact, share brief. Shared by Atlas Pulse and CNSS Pulse. */
+window.XF = (function(){
+  let CFG = null, EX = {}, req = {}, current = null, shareAud = 'team', ticker = null;
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const T = {
+    en:{impact:'Business impact · live',nba:'Next best actions',rec:'Recommended',inprog:'Already in progress',ask:'Ask the NOC to apply',sent:'Request sent · ',accepted:'NOC accepted · in progress since ',perMin:' per minute',soFar:'so far',share:'Share brief',shareTitle:'Share the brief',team:'For the team',board:'For the board',shareBtn:'Share…',copy:'Copy text',email:'Email',back:'Back',copied:'Copied. Paste it in email, WhatsApp or Teams.',copyFail:'Select the text and copy it.',toastReq:'Request sent to the NOC with your approval',toastAcc:'The NOC accepted your request',esc:'Crisis committee threshold (sample policy)',left:' min left',over:'Threshold passed: convene the crisis committee',sample:'Sent from {app} · sample data',what:'What',impactL:'Impact',cause:'Cause',doing:'Being done',next:'Recommended next steps',since:' since ',update:'I will keep you posted.',expected:'Expected fix: about ',note:'Nothing is changed from the phone: the request goes to the NOC, which applies it.',min:' min',noShare:'Sharing is not available here. Use Copy text.'},
+    fr:{impact:'Impact métier · en direct',nba:'Prochaines meilleures actions',rec:'Recommandée',inprog:'Déjà en cours',ask:'Demander à l’exploitation',sent:'Demande envoyée · ',accepted:'Acceptée par l’exploitation · en cours depuis ',perMin:' par minute',soFar:'depuis le début',share:'Partager la synthèse',shareTitle:'Partager la synthèse',team:'Pour l’équipe',board:'Pour le comité de direction',shareBtn:'Partager…',copy:'Copier le texte',email:'E-mail',back:'Retour',copied:'Copié. Collez-le dans un e-mail, WhatsApp ou Teams.',copyFail:'Sélectionnez le texte et copiez-le.',toastReq:'Demande envoyée à l’exploitation avec votre accord',toastAcc:'L’exploitation a accepté votre demande',esc:'Seuil cellule de crise (politique d’exemple)',left:' min restantes',over:'Seuil dépassé : réunir la cellule de crise',sample:'Envoyé depuis {app} · données fictives',what:'Quoi',impactL:'Impact',cause:'Cause',doing:'En cours',next:'Prochaines étapes recommandées',since:' depuis ',update:'Je vous tiens informé.',expected:'Rétablissement estimé : environ ',note:'Rien n’est modifié depuis le téléphone : la demande part à l’exploitation, qui l’applique.',min:' min',noShare:'Le partage n’est pas disponible ici. Utilisez Copier le texte.'}
+  };
+  const L = () => T[CFG.lang];
+  const org = () => typeof CFG.org==='function' ? CFG.org() : CFG.org;
+  const nf = v => Math.round(v).toLocaleString(CFG.lang==='fr'?'fr-FR':'en-US');
+  const hhmm = d => d.toTimeString().slice(0,5);
+
+  function init(cfg){
+    CFG = cfg; EX = JSON.parse(document.getElementById('xf-data').textContent);
+    const st = document.createElement('style'); st.textContent = CSS; document.head ? document.head.appendChild(st) : document.body.appendChild(st);
+    const toast = document.createElement('div'); toast.id='xf-toast'; toast.className='xf-toast'; toast.hidden=true; toast.setAttribute('role','status');
+    document.getElementById('device').appendChild(toast);
+    document.addEventListener('click', onClick);
+    ticker = setInterval(tick, 1000);
+  }
+  function reset(){ req = {}; }
+  function toast(msg){ const t=document.getElementById('xf-toast'); t.textContent=msg; t.hidden=false; clearTimeout(t._h); t._h=setTimeout(()=>t.hidden=true,3500); }
+
+  function startOf(inc){ return Date.now() - inc.minutesAgo*60000; }
+  function impactHTML(key, inc){
+    const x = EX[key]; if (!x || !x.impact) return '';
+    const s0 = startOf(inc);
+    const tiles = x.impact.map(it => {
+      if (it.perMin){ return `<div class="kpi ${it.money?'vbad':'bad'}"><small>${esc(it.label)}</small><b class="num" data-xf-rate="${it.perMin}" data-xf-start="${s0}" data-xf-unit="${esc(it.unit||'')}">—</b><span>+${nf(it.perMin)}${it.unit?' '+esc(it.unit):''}${L().perMin}</span></div>`; }
+      return `<div class="kpi"><small>${esc(it.label)}</small><b class="num">${nf(it.value)}${it.unit?' <span style="display:inline;font-size:.8rem">'+esc(it.unit)+'</span>':''}</b><span>${esc(it.note||'')}</span></div>`;
+    }).join('');
+    const escl = x.escalateMin ? `<div class="xf-esc" data-xf-esc="${x.escalateMin}" data-xf-start="${s0}"><div class="xf-esc-top"><span>${L().esc}</span><b class="num"></b></div><div class="xf-bar"><i></i></div></div>` : '';
+    return `<div class="card xf-impact"><h3>${L().impact}</h3><div class="kpis">${tiles}</div>${escl}</div>`;
+  }
+  function actionsHTML(key){
+    const x = EX[key]; if (!x || !x.actions) return '';
+    return `<div class="card xf-nba" data-xf-key="${esc(key)}"><h3>${L().nba}</h3><ol class="xf-list">${x.actions.map((a,i)=>{
+      const r = req[key+'#'+i];
+      let ctl;
+      if (a.inProgress) ctl = `<span class="chip ok">${L().inprog}</span>`;
+      else if (r && r.stage==='accepted') ctl = `<span class="chip ok">${L().accepted}${r.acc}</span>`;
+      else if (r) ctl = `<span class="chip info">${L().sent}${r.at}</span>`;
+      else ctl = `<button class="btn${a.recommended?'':' ghost'} xf-req" data-xf-req="${esc(key)}#${i}">${L().ask}</button>`;
+      return `<li><div class="xf-top"><b>${esc(a.title)}</b>${a.recommended?`<span class="chip warn">${L().rec}</span>`:''}</div><div class="xf-meta">${esc(a.owner)} · ${esc(a.eta)} · ${esc(a.effect)}</div>${ctl}</li>`;
+    }).join('')}</ol><p class="xf-note">${L().note}</p></div>`;
+  }
+  // Called after the detail sheet is rendered.
+  function decorate(key, ent, name){
+    const body = document.getElementById('sheetBody'); const inc = ent.incident;
+    current = { key, inc, name, status: ent.status, reopen: CFG.reopen.bind(null, key) };
+    if (!inc) return;
+    const kp = body.querySelector('.kpis');
+    if (kp) kp.insertAdjacentHTML('afterend', impactHTML(key, inc));
+    const cards = body.querySelectorAll(':scope > .card');
+    const after = cards[2] || cards[cards.length-1]; // chart, impact, cause → after cause
+    if (after) after.insertAdjacentHTML('afterend', actionsHTML(key));
+    const ask = body.querySelector(':scope > .btn[data-ask]');
+    if (ask){ const row=document.createElement('div'); row.className='xf-row'; ask.replaceWith(row); row.appendChild(ask); ask.style.alignSelf=''; row.insertAdjacentHTML('beforeend', `<button class="btn ghost" data-xf-share="${esc(key)}">${L().share}</button>`); }
+    tick();
+  }
+  // Called after the overview renders, with the top incident (or null).
+  function overview(top){
+    if (!top) return; const acts = document.querySelector('#scr-overview .brief .acts'); if (!acts) return;
+    current = current && current.key===top.key ? current : { key: top.key, inc: top.inc, name: top.name, status: top.status, reopen: CFG.reopen.bind(null, top.key) };
+    acts.insertAdjacentHTML('beforeend', `<button class="btn ghost" data-xf-share="${esc(top.key)}" data-xf-name="${esc(top.name)}">${L().share}</button>`);
+    overview._top = top;
+  }
+
+  function briefText(aud){
+    const c = current, i = c.inc, x = EX[c.key] || {}, l = L(), acts = x.actions || [];
+    const top = acts.find(a=>a.inProgress) || acts.find(a=>a.recommended) || acts[0];
+    if (aud === 'board'){
+      let t = `${c.name}${l.since}${i.start} : ${i.headline}.`.replace(' :', CFG.lang==='fr'?' :':':');
+      t += `\n${i.impact.split('. ')[0].replace(/\.$/,'')}.`;
+      const rate = (x.impact||[]).find(it=>it.money);
+      if (rate) t += ` ${rate.label}: ${nf(rate.perMin*((Date.now()-startOf(i))/60000))} ${rate.unit} ${l.soFar}.`;
+      if (top) t += `\n${top.title}. ${l.expected}${top.eta}.`;
+      t += `\n${l.update}`;
+      return t;
+    }
+    let t = `[${org()}] ${c.name}${l.since}${i.start}\n\n${l.what}: ${i.headline}.\n${l.impactL}: ${i.impact}\n${l.cause}: ${i.cause}\n${l.doing}: ${i.action}`;
+    if (acts.length) t += `\n\n${l.next}:\n` + acts.map((a,k)=>`${k+1}. ${a.title} (${a.owner}, ${a.eta})`).join('\n');
+    t += `\n\n— ${l.sample.replace('{app}', CFG.app)}`;
+    return t;
+  }
+  function openShare(key){
+    if (!current || current.key !== key){ const top = overview._top; if (top && top.key===key) current = { key, inc: top.inc, name: top.name, status: top.status, reopen: CFG.reopen.bind(null, key) }; }
+    if (!current) return;
+    const l = L(), txt = briefText(shareAud);
+    const subj = `${org()} · ${current.name}`;
+    document.getElementById('sheetBody').innerHTML = `
+      <div class="hd"><div><span class="chip ${current.status}">${esc(current.name)}</span><h2>${l.shareTitle}</h2></div>
+        <button class="x" data-xf-back aria-label="${l.back}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button></div>
+      <div class="seg"><button data-xf-aud="team" aria-pressed="${shareAud==='team'}">${l.team}</button><button data-xf-aud="board" aria-pressed="${shareAud==='board'}">${l.board}</button></div>
+      <textarea id="xf-text" class="xf-text" rows="${shareAud==='board'?7:14}" readonly>${esc(txt)}</textarea>
+      <div class="xf-row"><button class="btn" data-xf-native>${l.shareBtn}</button><button class="btn ghost" data-xf-copy>${l.copy}</button><a class="btn ghost" href="mailto:?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(txt)}">${l.email}</a></div>`;
+    document.getElementById('sheet').hidden = false; document.getElementById('scrim').hidden = false;
+  }
+  async function copyText(){
+    const ta = document.getElementById('xf-text');
+    try { await navigator.clipboard.writeText(ta.value); toast(L().copied); }
+    catch(e){ ta.focus(); ta.select(); toast(L().copyFail); }
+  }
+  async function nativeShare(){
+    const ta = document.getElementById('xf-text');
+    if (navigator.share){ try { await navigator.share({ title: org(), text: ta.value }); return; } catch(e){ if (e && e.name==='AbortError') return; } }
+    copyText();
+  }
+  function request(id){
+    const now = hhmm(new Date()); req[id] = { at: now, stage:'sent' };
+    toast(L().toastReq); refreshNBA();
+    setTimeout(()=>{ if (req[id]){ req[id].stage='accepted'; req[id].acc = hhmm(new Date()); toast(L().toastAcc); refreshNBA(); } }, 6000);
+  }
+  function refreshNBA(){ const el = document.querySelector('#sheetBody .xf-nba'); if (el) el.outerHTML = actionsHTML(el.dataset.xfKey); }
+
+  function tick(){
+    document.querySelectorAll('[data-xf-rate]').forEach(el=>{
+      const m = (Date.now() - Number(el.dataset.xfStart))/60000; el.textContent = nf(Number(el.dataset.xfRate)*m) + (el.dataset.xfUnit?' '+el.dataset.xfUnit:'');
+    });
+    document.querySelectorAll('[data-xf-esc]').forEach(el=>{
+      const lim = Number(el.dataset.xfEsc), m = (Date.now() - Number(el.dataset.xfStart))/60000, left = Math.max(0, Math.ceil(lim - m));
+      el.querySelector('b').textContent = left>0 ? left + L().left : L().over;
+      el.querySelector('i').style.width = Math.min(100, m/lim*100).toFixed(1)+'%';
+      el.classList.toggle('over', left<=0);
+    });
+  }
+  function onClick(e){
+    const t = e.target.closest('[data-xf-req],[data-xf-share],[data-xf-aud],[data-xf-copy],[data-xf-native],[data-xf-back]'); if (!t) return;
+    e.stopPropagation();
+    if (t.dataset.xfReq) request(t.dataset.xfReq);
+    else if (t.dataset.xfShare){ openShare(t.dataset.xfShare); }
+    else if (t.dataset.xfAud){ shareAud = t.dataset.xfAud; openShare(current.key); }
+    else if (t.hasAttribute('data-xf-copy')) copyText();
+    else if (t.hasAttribute('data-xf-native')) nativeShare();
+    else if (t.hasAttribute('data-xf-back')) current.reopen();
+  }
+  // For Copilot: the extra facts about an incident.
+  function prompt(key){ const x = EX[key]; if (!x) return {}; return { recommended_actions: (x.actions||[]).map(a=>({action:a.title, owner:a.owner, time:a.eta, effect:a.effect, already_in_progress:!!a.inProgress, recommended:!!a.recommended})), business_impact: (x.impact||[]).map(it=> it.perMin ? {metric:it.label, per_minute:it.perMin, unit:it.unit||''} : {metric:it.label, value:it.value, unit:it.unit||''}), crisis_threshold_minutes: x.escalateMin||null }; }
+  function offline(q, key){
+    const x = EX[key]; if (!x || !x.actions) return null;
+    if (!/what (should|do|can) (we|i) do|what to do|next step|recommend|\baction|que faire|faut-il faire|que fait-on|recommand|prochaine/i.test(q)) return null;
+    const head = CFG.lang==='fr' ? 'Voici les actions recommandées :' : 'Here is what I recommend:';
+    return head + '\n' + x.actions.map(a=>`- **${a.title}** (${a.owner}, ${a.eta}): ${a.effect}${a.inProgress?(CFG.lang==='fr'?' · déjà en cours':' · already in progress'):''}`).join('\n');
+  }
+
+  const CSS = `
+.xf-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px}
+.xf-list li{display:flex;flex-direction:column;gap:6px;align-items:flex-start;padding-top:12px;border-top:1px solid var(--line)}
+.xf-list li:first-child{border-top:0;padding-top:0}
+.xf-top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.xf-top b{font-size:.92rem}
+.xf-meta{font-size:.8rem;color:var(--ink-2)}
+.xf-list .btn{padding:7px 12px;font-size:.8rem}
+.xf-note{font-size:.74rem;color:var(--ink-3);margin:12px 0 0!important}
+.xf-impact .kpis{margin-bottom:2px}
+.xf-esc{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+.xf-esc-top{display:flex;justify-content:space-between;gap:10px;font-size:.78rem;color:var(--ink-2)}
+.xf-esc-top b{white-space:nowrap;color:var(--warn)}
+.xf-esc.over .xf-esc-top b{color:var(--crit)}
+.xf-bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.xf-bar i{display:block;height:100%;width:0;background:var(--warn);border-radius:3px}
+.xf-esc.over .xf-bar i{background:var(--crit)}
+.xf-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.xf-row a.btn{text-decoration:none;display:inline-block}
+.xf-text{width:100%;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);font:inherit;font-size:.86rem;line-height:1.5;padding:12px 14px;resize:vertical}
+.xf-toast{position:absolute;left:16px;right:16px;bottom:84px;z-index:40;background:var(--ink);color:var(--bg);border-radius:14px;padding:11px 14px;font-size:.85rem;box-shadow:var(--shadow)}
+`;
+  return { init, decorate, overview, prompt, offline, reset };
+})();
+
+</script>
+<script>
+(function(){
+const D = JSON.parse(document.getElementById('dataset').textContent);
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const state = { svc:false, ag:false, resolved:false, tab:'overview', chat:[] };
+
+/* ---------- formatting (French) ---------- */
+const fr = (v, d=1) => Number(v).toFixed(d).replace('.', ',');
+function fmtResp(ms, unit){ if (unit==='min') return fr(ms)+' min'; if (!ms) return '—'; return ms>=1000 ? fr(ms/1000)+' s' : Math.round(ms)+' ms'; }
+function fmtPct(v){ if (v===100) return '100 %'; if (v>=99.95) return fr(v,2)+' %'; if (v<1) return fr(v,2).replace(/0$/,'')+' %'; return fr(v)+' %'; }
+const hhmm = d => d.toTimeString().slice(0,5);
+const clockMinus = m => hhmm(new Date(Date.now()-m*60000));
+const WORD = {ok:'Normal', warn:'Dégradé', crit:'Perturbé', info:'Sécurité'};
+
+/* ---------- data shaping ---------- */
+function seeded(str){ let h=2166136261; for (const c of str){ h^=c.charCodeAt(0); h=Math.imul(h,16777619);} return () => { h^=h<<13; h^=h>>>17; h^=h<<5; return ((h>>>0)%10000)/10000; }; }
+function series(e){
+  const r = seeded(e.id), n=96, base = e.incident ? 95 - r()*2 : e.score, pts=[];
+  for (let i=0;i<n;i++) pts.push(Math.max(0, Math.min(100, base + Math.sin(i/n*Math.PI*2)*1.4 + (r()-.5)*3)));
+  if (e.incident){ const k=Math.max(1, Math.ceil(e.incident.minutesAgo/15)); for (let j=0;j<k;j++){ const ix=n-k+j, f=(j+1)/k; pts[ix]=pts[ix]*(1-f)+e.score*f; } }
+  pts[n-1]=e.score; return pts;
+}
+function finishIncident(e){
+  const i=e.incident; if (!i) return;
+  const fill = s => String(s).replace(/\{start\}/g, clockMinus(i.minutesAgo));
+  ['summary','cause','impact','action','headline'].forEach(k => i[k]=fill(i[k])); i.evidence=i.evidence.map(fill); i.start=clockMinus(i.minutesAgo);
+}
+function model(){
+  const svcs = JSON.parse(JSON.stringify(D.services)), regs = JSON.parse(JSON.stringify(D.regions));
+  const apply = (sc) => {
+    const list = sc.kind==='service' ? svcs : regs, t = list.find(x=>x.id===sc.target); if (!t) return;
+    t.status=sc.status; t.score=sc.score; Object.assign(t.kpi, sc.kpi); t.incident=JSON.parse(JSON.stringify(sc.incident));
+  };
+  if (state.svc) apply(D.scenarios.service);
+  if (state.ag) apply(D.scenarios.agency);
+  if (state.resolved){
+    svcs.forEach(s=>{ if (s.incident){ s.incident=null; s.status='ok'; s.score=95; s.kpi.resp=s.kpi.respBase; s.kpi.fail=s.kpi.failBase; s.kpi.avail=99.9; }});
+    regs.forEach(r=>{ if (r.incident){ r.incident=null; r.status='ok'; r.score=95; r.kpi.resp=r.kpi.respBase; r.kpi.backup=0; r.kpi.down=0; }});
+  }
+  const rank={crit:0,warn:1,ok:2};
+  [...svcs, ...regs].forEach(e=>{ finishIncident(e); e.series=series(e); });
+  svcs.sort((a,b)=>rank[a.status]-rank[b.status]); regs.sort((a,b)=>rank[a.status]-rank[b.status] || b.agencies-a.agencies);
+  const issues = [...svcs.filter(s=>s.incident).map(s=>({...s,kind:'service'})), ...regs.filter(r=>r.incident).map(r=>({...r,kind:'region'}))].sort((a,b)=>rank[a.status]-rank[b.status]);
+  const all=[...svcs,...regs];
+  const worst = issues[0] ? issues[0].status : 'ok';
+  const score = Math.round(all.reduce((a,e)=>a+e.score,0)/all.length);
+  const agTotal = regs.reduce((a,r)=>a+r.agencies,0);
+  const agDown = regs.reduce((a,r)=>a+(r.kpi.down||0),0), agBackup = regs.reduce((a,r)=>a+(r.kpi.backup||0),0);
+  return {svcs, regs, issues, worst, score, agTotal, agDown, agBackup};
+}
+
+/* ---------- charts ---------- */
+function spark(pts, st){
+  const w=60,h=24,min=Math.min(...pts,40),max=100, col= st==='ok'?'var(--accent)':`var(--${st})`;
+  const xy=pts.map((v,i)=>[(i/(pts.length-1))*w, h-2-((v-min)/(max-min))*(h-4)]), l=xy[xy.length-1];
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" aria-hidden="true"><path d="${xy.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ')}" fill="none" stroke="${col}" stroke-width="1.5" stroke-linejoin="round"/><circle cx="${l[0]}" cy="${l[1]}" r="2.4" fill="${col}"/></svg>`;
+}
+function bigChart(e){
+  const W=340,H=160,L=30,R=8,T=10,B=24,iw=W-L-R,ih=H-T-B,pts=e.series, y=v=>T+ih-(v/100)*ih, x=i=>L+(i/(pts.length-1))*iw;
+  const col= e.status==='ok'?'var(--accent)':`var(--${e.status})`, line=pts.map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)).join(' ');
+  const grid=[0,50,100].map(v=>`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L-6}" y="${y(v)+3.5}" text-anchor="end" font-size="10" fill="var(--ink-3)" font-family="JetBrains Mono, monospace">${v}</text>`).join('');
+  const xl=[[0,'−24 h','start'],[48,'−12 h','middle'],[95,'Maintenant','end']].map(([i,t,a])=>`<text x="${x(i)}" y="${H-6}" text-anchor="${a}" font-size="10" fill="var(--ink-3)" font-family="JetBrains Mono, monospace">${t}</text>`).join('');
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Score d'expérience sur 24 heures, actuellement ${e.score}">${grid}<path d="${line} L${x(95)} ${y(0)} L${x(0)} ${y(0)} Z" fill="${col}" opacity=".12"/><path d="${line}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round"/><circle cx="${x(95)}" cy="${y(e.score)}" r="4" fill="${col}" stroke="var(--surface)" stroke-width="2"/>${xl}</svg>`;
+}
+function ring(score, st){
+  const r=44,c=2*Math.PI*r,col= st==='ok'?'var(--ok)':`var(--${st})`;
+  return `<div class="ring"><svg viewBox="0 0 104 104"><circle cx="52" cy="52" r="${r}" fill="none" stroke="var(--line)" stroke-width="9"/><circle cx="52" cy="52" r="${r}" fill="none" stroke="${col}" stroke-width="9" stroke-linecap="round" stroke-dasharray="${(score/100*c).toFixed(1)} ${c.toFixed(1)}"/></svg><div class="v"><b class="num">${score}</b><span>Expérience</span></div></div>`;
+}
+
+/* ---------- copy ---------- */
+function brief(m){
+  if (!m.issues.length) return `Les ${m.svcs.length} services suivis et les ${m.agTotal} agences fonctionnent normalement. ${D.security.attacks24h} attaques DDoS ont été bloquées automatiquement en 24 heures, sans impact pour les ${D.usersWord}.`;
+  const i=m.issues[0], inc=i.incident;
+  let t=`${inc.headline}, depuis ${inc.start}. ${inc.cause.split('. ')[0]}. ${inc.action}`;
+  if (m.issues.length>1) t+=` ${m.issues.length-1===1?'Un autre point':'Autres points'} à suivre : ${m.issues.slice(1).map(x=>x.name).join(', ')}.`;
+  return t;
+}
+const short = e => e.kind==='region' ? 'Région '+e.name : e.name;
+
+function rowSvc(s){
+  return `<button class="row ${s.status}" data-open="service:${s.id}" aria-label="${esc(s.name)}, ${WORD[s.status]}, score ${s.score}"><i class="stripe"></i><span class="t"><b>${esc(s.name)}</b><small>${s.incident?esc(s.incident.headline):esc(s.respLabel+' '+fmtResp(s.kpi.resp,s.kpi.respUnit)+' · disponible '+fmtPct(s.kpi.avail))}</small></span>${spark(s.series,s.status)}<span class="sc num">${s.score}</span></button>`;
+}
+function rowReg(r){
+  const up = r.agencies-(r.kpi.down||0);
+  const sub = r.incident ? r.incident.headline : `Guichet ${fmtResp(r.kpi.resp)} · ${r.agents} agents`;
+  return `<button class="row ${r.status}" data-open="region:${r.id}" aria-label="${esc(r.name)}, ${WORD[r.status]}"><i class="stripe"></i><span class="t"><b>${esc(r.name)}</b><small>${esc(sub)}</small></span><span class="ag num">${up}/${r.agencies}</span><span class="sc num">${r.score}</span></button>`;
+}
+
+/* ---------- screens ---------- */
+function renderOverview(){
+  const m=model();
+  const h = !m.issues.length ? 'Tout fonctionne normalement' : m.issues.length===1 ? `${short(m.issues[0])} : à surveiller` : `${m.issues.length} points demandent votre attention`;
+  const sub = `${m.svcs.filter(s=>s.status==='ok').length} services sur ${m.svcs.length} normaux · ${m.agTotal-m.agDown} agences sur ${m.agTotal} en ligne`;
+  $('#scr-overview').innerHTML = `
+    <div class="hero">${ring(m.score,m.worst)}<div><span class="chip ${m.worst}">${WORD[m.worst]}</span><h1 style="margin-top:8px">${esc(h)}</h1><p>${esc(sub)}</p></div></div>
+    <div class="brief"><div class="lbl"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"/></svg>Synthèse Copilot</div>
+      <p>${esc(brief(m))}</p>
+      <div class="acts">${m.issues.length?`<button class="btn" data-open="${m.issues[0].kind}:${m.issues[0].id}">Voir le détail</button>`:''}<button class="btn ghost" data-ask="${m.issues.length?'Pourquoi cela arrive-t-il et que fait-on ?':'Résume la situation pour mon comité de direction'}">Demander à Copilot</button></div></div>
+    <div class="month"><div><b class="num">${D.month.availability}</b><span>${D.month.availabilityLabel}</span></div><div><b class="num">${D.month.majors}</b><span>${D.month.majorsLabel}</span></div><div><b class="num">${D.month.ddos}</b><span>${D.month.ddosLabel}</span></div></div>
+    <div class="sec-h"><h2>Services aux assurés et employeurs</h2><span>Score</span></div>
+    <div class="list">${m.svcs.map(rowSvc).join('')}</div>
+    <div class="sec-h"><h2>Agences</h2><button class="btn ghost" style="padding:4px 10px;font-size:.74rem" data-tab="regions">Toutes les régions</button></div>
+    <div class="list">${m.regs.slice(0,3).map(rowReg).join('')}</div>
+    <div class="sec-h"><h2>Cybersécurité · 24 h</h2></div>
+    <div class="secu"><span class="big num">${D.security.attacks24h}</span><b>Attaques DDoS bloquées automatiquement</b><small>La plus forte : ${esc(D.security.largest)} à ${esc(D.security.time)} contre ${esc(D.security.target)}. ${esc(D.security.result)}</small></div>
+    <div class="threat"><span class="chip warn" style="align-self:flex-start">${D.threats.count} menace détectée · ${esc(D.threats.time)}</span><small>${esc(D.threats.text)}</small></div>
+    <div class="foot mono">Prototype de démonstration · données fictives</div>`;
+  const nR = m.regs.filter(r=>r.incident).length;
+  $('#badge').hidden=!m.issues.length; $('#badge').textContent=m.issues.length;
+  $('#badgeR').hidden=!nR; $('#badgeR').textContent=nR;
+  $('#liveDot').style.background = m.worst==='ok'?'':`var(--${m.worst})`;
+  const t0=m.issues[0]; XF.overview(t0 ? {key:t0.kind+':'+t0.id, inc:t0.incident, name:short(t0), status:t0.status} : null);
+}
+function renderRegions(){
+  const m=model();
+  $('#scr-regions').innerHTML = `
+    <div class="ask-h"><h1 style="font-family:var(--f-display);font-stretch:82%;font-size:1.5rem;margin:0">Agences</h1><span class="mono" style="color:var(--ink-3)">${m.agTotal} agences · 12 régions</span></div>
+    <div class="month"><div><b class="num">${m.agTotal-m.agDown}</b><span>Agences en ligne</span></div><div><b class="num" style="${m.agBackup?'color:var(--warn)':''}">${m.agBackup}</b><span>Sur liaison de secours</span></div><div><b class="num" style="${m.agDown?'color:var(--crit)':''}">${m.agDown}</b><span>Coupées du réseau</span></div></div>
+    <div class="sec-h"><h2>Régions</h2><span>En ligne · Score</span></div>
+    <div class="list">${m.regs.map(rowReg).join('')}</div>
+    <p class="note">Le score combine la disponibilité des liaisons et le temps de réponse au guichet de chaque agence, mesurés par les sondes NETSCOUT.</p>`;
+}
+function renderAlerts(){
+  const m=model();
+  const now = m.issues.map(e=>`<button class="alert" data-open="${e.kind}:${e.id}"><div class="top"><span class="chip ${e.status}">${WORD[e.status]} · ${esc(short(e))}</span><span class="mono" style="color:var(--ink-3)">${e.incident.start}</span></div><p><b>${esc(e.incident.headline)}.</b> ${esc(e.incident.impact)}</p></button>`).join('');
+  $('#scr-alerts').innerHTML = `
+    <div class="ask-h"><h1 style="font-family:var(--f-display);font-stretch:82%;font-size:1.5rem;margin:0">Alertes</h1><span class="mono" style="color:var(--ink-3)">${m.issues.length} en cours</span></div>
+    ${now || '<p class="note">Aucun incident en cours. Vous recevez une notification seulement quand des assurés ou des employeurs sont touchés.</p>'}
+    <div class="sec-h"><h2>Plus tôt</h2></div>
+    ${D.history.map(h=>`<div class="alert past"><div class="top"><span class="chip ${h.sev}">${h.sev==='info'?'Sécurité':'Résolu'}</span><span class="mono" style="color:var(--ink-3)">${esc(h.when)}</span></div><p>${esc(h.text)}</p></div>`).join('')}
+    <p class="note">Règle de notification : alerte uniquement si un service passe sous 80, si une agence est coupée plus de 5 minutes, ou si une cyberattaque n'est pas bloquée automatiquement. Environ une notification par semaine.</p>`;
+}
+
+function openEntity(ref){
+  const [kind,id]=ref.split(':'), m=model(), e=(kind==='service'?m.svcs:m.regs).find(x=>x.id===id); if (!e) return;
+  const i=e.incident, k=e.kpi;
+  let kpis;
+  if (kind==='service'){
+    const ratio=k.resp/(k.respBase||1);
+    kpis=`<div class="kpi"><small>Expérience</small><b class="num">${e.score}<span style="display:inline;font-size:.9rem;color:var(--ink-3)"> /100</span></b><span>Habituel : 93 à 98</span></div>
+      <div class="kpi ${ratio>3?'vbad':ratio>1.4?'bad':''}"><small>${esc(e.respLabel)}</small><b class="num">${fmtResp(k.resp,k.respUnit)}</b><span>Habituel : ${fmtResp(k.respBase,k.respUnit)}</span></div>
+      <div class="kpi ${k.fail>5?'vbad':k.fail>k.failBase*2+0.2?'bad':''}"><small>Taux d'échec</small><b class="num">${fmtPct(k.fail)}</b><span>Habituel : ${fmtPct(k.failBase)}</span></div>
+      <div class="kpi ${k.avail<95?'vbad':k.avail<99.5?'bad':''}"><small>Disponibilité</small><b class="num">${fmtPct(k.avail)}</b><span>Objectif : 99,9 %</span></div>`;
+  } else {
+    kpis=`<div class="kpi ${k.down?'vbad':''}"><small>Agences en ligne</small><b class="num">${e.agencies-(k.down||0)}/${e.agencies}</b><span>${k.down?k.down+' coupée'+(k.down>1?'s':''):'Toutes ouvertes'}</span></div>
+      <div class="kpi ${k.backup?'bad':''}"><small>Liaison de secours</small><b class="num">${k.backup||0}</b><span>${k.backup?'agences ralenties':'aucune'}</span></div>
+      <div class="kpi ${k.resp>2000?'vbad':k.resp>k.respBase*1.4?'bad':''}"><small>Réponse au guichet</small><b class="num">${fmtResp(k.resp)}</b><span>Habituel : ${fmtResp(k.respBase)}</span></div>
+      <div class="kpi"><small>Agents</small><b class="num">${e.agents}</b><span>dans la région</span></div>`;
+  }
+  const meta = kind==='service' ? `${esc(e.protocol)} · ${esc(e.volume)}` : `Région · ${e.agencies} agences`;
+  const lead = i ? i.summary : (kind==='service' ? 'Fonctionnement normal. Les temps de réponse et le taux d’échec sont dans la plage habituelle pour cette heure.' : `Les ${e.agencies} agences de la région sont en ligne, avec des temps de réponse normaux au guichet.`);
+  $('#sheetBody').innerHTML = `
+    <div class="hd"><div><span class="chip ${e.status}">${WORD[e.status]}${i?' · depuis '+i.start:''}</span><h2>${esc(kind==='region'?'Région '+e.name:e.name)}</h2><span class="mono proto">${meta}</span></div>
+      <button class="x" data-close aria-label="Fermer"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <p class="lead">${esc(lead)}</p>
+    <div class="kpis">${kpis}</div>
+    <div class="card"><h3>Score d'expérience · 24 heures</h3>${bigChart(e)}</div>
+    ${i?`<div class="card"><h3>Cause probable</h3><p>${esc(i.cause)}</p><h3 style="margin-top:12px">Impact</h3><p>${esc(i.impact)}</p><h3 style="margin-top:12px">Ce qui est fait</h3><p>${esc(i.action)}</p></div>
+    <div class="card"><h3>Preuves issues des paquets</h3><ul class="ev">${i.evidence.map(x=>`<li><span>${esc(x)}</span></li>`).join('')}</ul></div>
+    <div class="card"><h3>${kind==='region'?'Agences concernées':'Régions concernées'}</h3><ul class="agl">${i.sites.map(s=>`<li><span>${esc(s)}</span><span class="chip ${e.status}">${WORD[e.status]}</span></li>`).join('')}</ul></div>`:''}
+    <button class="btn" style="align-self:flex-start" data-ask="${esc(i?'Explique-moi simplement le problème « '+i.headline+' ». Dois-je m’inquiéter ?':'Comment se porte '+(kind==='region'?'la région '+e.name:e.name)+' aujourd’hui ?')}">Demander à Copilot</button>`;
+  XF.decorate(kind+':'+id, e, kind==='region'?'Région '+e.name:e.name);
+  showSheet();
+}
+
+/* ---------- demo controls ---------- */
+function demoHTML(){
+  return `<div class="demo-group"><h3>Scénarios en direct</h3>
+    <button class="dbtn primary" data-act="svc" ${state.svc?'disabled style="opacity:.55"':''}><span>Panne Damancom</span><small>envoie une alerte</small></button>
+    <button class="dbtn primary" data-act="ag" ${state.ag?'disabled style="opacity:.55"':''}><span>Agences coupées à Casablanca</span><small>envoie une alerte</small></button>
+    <button class="dbtn" data-act="resolve"><span>Tout résoudre</span><small>retour au vert</small></button>
+    <button class="dbtn" data-act="reset"><span>Réinitialiser la démo</span><small>état de départ</small></button></div>`;
+}
+function openDemo(){
+  $('#sheetBody').innerHTML = `<div class="hd"><div><span class="chip info">Présentateur uniquement</span><h2>Commandes de démo</h2></div><button class="x" data-close aria-label="Fermer"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>${demoHTML()}<p class="note">Toutes les données sont fictives et suivent la structure des KPI nGeniusONE, des événements Arbor et des détections Omnis. Aucune donnée réelle de la CNSS.</p>`;
+  showSheet();
+}
+function showSheet(){ $('#scrim').hidden=false; $('#sheet').hidden=false; $('#sheetBody').scrollTop=0; }
+function hideSheet(){ $('#scrim').hidden=true; $('#sheet').hidden=true; }
+let pushTimer;
+function push(e){
+  const el=$('#push'); el.innerHTML=`<span class="ic">!</span><b>${esc(short(e))} · ${WORD[e.status]}</b><span>${esc(e.incident.headline)}. Touchez pour voir le détail.</span>`;
+  el.dataset.open=`${e.kind}:${e.id}`; el.hidden=false; clearTimeout(pushTimer); pushTimer=setTimeout(()=>el.hidden=true,7000);
+}
+function act(a){
+  if (a==='svc'||a==='ag'){ state[a]=true; state.resolved=false; hideSheet(); renderAll();
+    const sc = a==='svc'?D.scenarios.service:D.scenarios.agency, m=model(), e=(sc.kind==='service'?m.svcs:m.regs).find(x=>x.id===sc.target);
+    setTimeout(()=>push({...e,kind:sc.kind}),600); }
+  if (a==='resolve'){ state.resolved=true; hideSheet(); renderAll(); }
+  if (a==='reset'){ state.svc=false; state.ag=false; state.resolved=false; state.chat=[]; XF.reset(); hideSheet(); renderAll(); }
+}
+function setTab(t){
+  state.tab=t; document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected', b.dataset.tab===t));
+  ['overview','regions','alerts','ask'].forEach(x=>$('#scr-'+x).hidden = x!==t);
+  $('#screens').scrollTop=0; if (t==='ask') renderChat();
+}
+
+/* ---------- Copilot ---------- */
+let sampleFn=null, sampleState='connecting';
+function context(){
+  const m=model();
+  const inc = i => i ? {depuis:i.start, titre:i.headline, resume:i.summary, cause_probable:i.cause, impact:i.impact, action_en_cours:i.action, lieux:i.sites, preuves:i.evidence} : null;
+  return JSON.stringify({ organisation:'CNSS (données fictives de démonstration)', heure:hhmm(new Date()),
+    services:m.svcs.map(s=>({nom:s.name, technologie:s.protocol, volume:s.volume, etat:WORD[s.status], score:s.score, [s.respLabel]:fmtResp(s.kpi.resp,s.kpi.respUnit), habituel:fmtResp(s.kpi.respBase,s.kpi.respUnit), taux_echec:fmtPct(s.kpi.fail), disponibilite:fmtPct(s.kpi.avail), incident:s.incident?{...inc(s.incident), ...XF.prompt('service:'+s.id)}:null})),
+    regions:m.regs.map(r=>({nom:r.name, agences:r.agencies, agences_coupees:r.kpi.down||0, agences_sur_secours:r.kpi.backup||0, reponse_guichet:fmtResp(r.kpi.resp), agents:r.agents, etat:WORD[r.status], score:r.score, incident:r.incident?{...inc(r.incident), ...XF.prompt('region:'+r.id)}:null})),
+    total_agences:m.agTotal, mois_en_cours:D.month, ddos_24h:D.security, menaces_detectees:D.threats, evenements_precedents:D.history });
+}
+const RULES = () => `Tu es nGenius Copilot dans l'application mobile du Directeur Général de la CNSS (Caisse Nationale de Sécurité Sociale, Maroc). Il vient d'être nommé et veut une visibilité complète sur les services et les agences. Ceci est une démonstration commerciale sur des données fictives.
+Réponds uniquement à partir des données ci-dessous, issues de la supervision NETSCOUT basée sur les paquets (KPI nGeniusONE, protection DDoS Arbor, détection de menaces Omnis).
+Règles :
+- Commence par la réponse en une phrase. Puis au plus 3 phrases courtes ou 3 puces ("- ").
+- Langage de dirigeant : impact pour les assurés, les employeurs et les agences, depuis quand, pourquoi, ce qui est fait, faut-il s'inquiéter. Explique tout terme technique en quelques mots.
+- Utilise les chiffres exacts des données. N'invente jamais de chiffre, de nom ou d'événement. Si les données ne couvrent pas la question, dis-le et propose de demander à l'équipe d'exploitation.
+- Si on te demande quoi faire, utilise recommended_actions (précise ce qui est déjà en cours) et rappelle que le DG peut toucher « Demander à l’exploitation » sur l'incident : l'exploitation l'applique, rien ne change depuis le téléphone.
+- Pour les questions d'impact, utilise business_impact ; les valeurs per_minute s'accumulent depuis le début de l'incident.
+- Réponds dans la langue de la question (français, anglais, arabe ou darija).
+- Pas de titres ni de tableaux. Tu peux mettre un chiffre clé en **gras**.
+
+DONNÉES (JSON) :
+${context()}`;
+function md(t){
+  const lines=esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').split(/\n+/); let out='',ul=false;
+  for (const l of lines){ const mm=l.match(/^\s*[-•*]\s+(.*)/); if (mm){ if(!ul){out+='<ul>';ul=true;} out+=`<li>${mm[1]}</li>`; } else if (l.trim()){ if(ul){out+='</ul>';ul=false;} out+=`<p>${l}</p>`; } }
+  return out+(ul?'</ul>':'');
+}
+function offline(q){
+  const m=model(), e=m.issues[0], ql=q.toLowerCase();
+  if (e){ const xa=XF.offline(q, e.kind+':'+e.id); if (xa) return xa; }
+  if (/ddos|attaq|attack|cyber|menace|pirat|hack|sécurité|securite/.test(ql)) return `${D.security.attacks24h} attaques DDoS ont été bloquées automatiquement en 24 heures. La plus forte, ${D.security.largest}, visait ${D.security.target} à ${D.security.time}. ${D.security.result}\n- Menace détectée : ${D.threats.text}`;
+  if (/agence|branch|région|region|guichet/.test(ql)) return `${m.agTotal-m.agDown} agences sur ${m.agTotal} sont en ligne.\n- Sur liaison de secours : ${m.agBackup}\n- Coupées du réseau : ${m.agDown}${m.regs.filter(r=>r.incident).map(r=>`\n- ${r.name} : ${r.incident.headline}`).join('')}`;
+  if (!e) return `Tout fonctionne normalement. Les ${m.svcs.length} services et les ${m.agTotal} agences sont dans leur plage habituelle : rien ne demande votre attention.`;
+  if (/impact|combien|how many|assur|employeur|citizen|citoyen|affect/.test(ql)) return `${e.incident.impact}\n- Concerné : ${short(e)}\n- Depuis : ${e.incident.start}\n- Lieux : ${e.incident.sites.join(', ')}`;
+  if (/pourquoi|cause|why|raison/.test(ql)) return `${e.incident.cause}\n\n${e.incident.action}`;
+  return `**${e.incident.headline}** depuis ${e.incident.start}. ${e.incident.cause.split('. ')[0]}.\n- Impact : ${e.incident.impact}\n- Action : ${e.incident.action}${m.issues.length>1?`\n- À suivre aussi : ${m.issues.slice(1).map(short).join(', ')}`:''}`;
+}
+function renderChat(){
+  const msgs=state.chat;
+  const chip = sampleState==='live'?'<span class="chip ok">IA en direct</span>':sampleState==='connecting'?'<span class="chip info">Connexion…</span>':'<span class="chip info">Réponses de démo</span>';
+  $('#chat').innerHTML = `<div class="ask-h"><h1>Copilot</h1>${chip}</div>
+    ${msgs.length?'':`<div class="msg ai"><p>Bonjour Monsieur le Directeur Général. Posez-moi vos questions sur les services de la CNSS, les agences ou la cybersécurité. Je réponds à partir des données réseau, et je vous dis quand je ne sais pas.</p></div>`}
+    ${msgs.map((x,ix)=>x.role==='user'?`<div class="msg me">${esc(x.content)}</div>`:`<div class="msg ai${x.thinking?' think':''}" ${ix===msgs.length-1?'id="lastAi"':''}>${x.thinking?'Analyse des données réseau…':md(x.content)}${x.thinking?'':`<span class="src">${x.offline?'Réponse de démo, données fictives':'Fondé sur les données fictives nGeniusONE'}</span>`}</div>`).join('')}
+    ${msgs.some(x=>x.thinking)?'':`<div class="sugg">${D.suggestions.map(q=>`<button data-q="${esc(q)}">${esc(q)}</button>`).join('')}</div>`}`;
+  const c=$('#chat'); c.scrollTop=c.scrollHeight;
+}
+async function ask(q){
+  q=q.trim(); if (!q) return; const msgs=state.chat; if (msgs.some(x=>x.thinking)) return;
+  if (state.tab!=='ask') setTab('ask');
+  msgs.push({role:'user',content:q}); const ai={role:'assistant',content:'',thinking:true}; msgs.push(ai); renderChat();
+  if (!sampleFn){ setTimeout(()=>{ ai.thinking=false; ai.offline=true; ai.content=offline(q); renderChat(); },700); return; }
+  const turns=[{role:'user',content:RULES()}]; msgs.slice(0,-1).slice(-8).forEach(x=>{ if (x.content) turns.push({role:x.role,content:x.content}); });
+  try{
+    const res=await sampleFn(turns,{cache:false, modelTier:'quick', signal:new AbortController().signal,
+      onText:({text})=>{ ai.thinking=false; ai.content=text; const el=$('#lastAi'); if (state.tab==='ask'&&el){ el.classList.remove('think'); el.innerHTML=md(text); } }});
+    ai.thinking=false; ai.content=res.text;
+  }catch(err){
+    if (['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed'].includes(err&&err.code)){ sampleFn=null; sampleState='offline'; }
+    ai.thinking=false; ai.offline=!(err&&err.text); ai.content=(err&&err.text)?err.text:offline(q);
+  }
+  renderChat();
+}
+
+/* ---------- wiring ---------- */
+function renderAll(){ renderOverview(); renderRegions(); renderAlerts(); if (state.tab==='ask') renderChat(); $('#deskDemo').innerHTML=demoHTML(); $('#updated').textContent='En direct · mis à jour '+hhmm(new Date()); }
+document.addEventListener('click', ev=>{
+  const t=ev.target.closest('[data-open],[data-ask],[data-q],[data-close],[data-act],[data-tab]'); if (!t) return;
+  if (t.dataset.tab){ hideSheet(); setTab(t.dataset.tab); }
+  else if (t.dataset.close!==undefined) hideSheet();
+  else if (t.dataset.act) act(t.dataset.act);
+  else if (t.dataset.ask){ hideSheet(); ask(t.dataset.ask); }
+  else if (t.dataset.q) ask(t.dataset.q);
+  else if (t.dataset.open){ if (t.id==='push') t.hidden=true; openEntity(t.dataset.open); }
+});
+$('#demoBtn').addEventListener('click', openDemo);
+$('#scrim').addEventListener('click', hideSheet);
+document.addEventListener('keydown', ev=>{ if (ev.key==='Escape') hideSheet(); });
+$('#composer').addEventListener('submit', ev=>{ ev.preventDefault(); const v=$('#q').value; $('#q').value=''; ask(v); });
+XF.init({lang:'fr', org:'CNSS', app: document.title, reopen: k => openEntity(k)});
+renderAll();
+setInterval(()=>{ $('#updated').textContent='En direct · mis à jour '+hhmm(new Date()); },30000);
+if (window.claude && window.claude.use){
+  window.claude.use('sample').then(fn=>{ sampleFn=fn||null; sampleState=fn?'live':'offline'; if (state.tab==='ask') renderChat(); }).catch(()=>{ sampleState='offline'; if (state.tab==='ask') renderChat(); });
+} else sampleState='offline';
+})();
+</script>
+
+</body></html>
