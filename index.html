@@ -1,9 +1,10 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="CNSS Pulse">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="CNSS Pulse">
 <link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="manifest" href="manifest.webmanifest">
-<style>html{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+<style>html{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
 <title>CNSS Pulse</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -359,6 +360,202 @@ button:focus-visible,input:focus-visible,.row:focus-visible{outline:2px solid va
   </aside>
 </div>
 
+<script type="application/json" id="xf-data">{
+ "service:amo":{"actions":[
+   {"title":"Confirmer l’arrêt du traitement de masse","owner":"Exploitation","eta":"5 min","effect":"Retour à 350 ms pour les pharmacies","inProgress":true},
+   {"title":"Reprogrammer ce traitement la nuit","owner":"DSI","eta":"Demain","effect":"Évite que l’incident se reproduise","recommended":true},
+   {"title":"Informer les pharmacies via le portail partenaires","owner":"Communication","eta":"15 min","effect":"Moins d’appels des partenaires"}],
+  "impact":[{"label":"Pharmacies concernées","value":900},{"label":"Validations retardées","perMin":38}]},
+ "region:fes":{"actions":[
+   {"title":"Relancer l’opérateur sur le ticket ouvert","owner":"Réseau","eta":"10 min","effect":"Rétablissement avant 12:00","inProgress":true},
+   {"title":"Orienter les assurés vers MACNSS et TAAWIDATY","owner":"Agences","eta":"5 min","effect":"Files d’attente plus courtes","recommended":true},
+   {"title":"Prioriser les opérations urgentes au guichet","owner":"Direction régionale","eta":"15 min","effect":"Les dossiers urgents passent en premier"}],
+  "impact":[{"label":"Agents ralentis","value":60},{"label":"Visiteurs attendus ce matin","value":400}]},
+ "service:damancom":{"actions":[
+   {"title":"Retirer le répartiteur défaillant du service","owner":"Réseau","eta":"3 min","effect":"Tous les employeurs peuvent se reconnecter","recommended":true},
+   {"title":"Annuler la mise à jour du certificat","owner":"Sécurité","eta":"15 min","effect":"Corrige la cause"},
+   {"title":"Afficher un message sur Damancom et au centre de contacts","owner":"Communication","eta":"10 min","effect":"Moins d’appels d’employeurs"}],
+  "impact":[{"label":"Connexions échouées","perMin":330},{"label":"Appels supplémentaires","perMin":12}],"escalateMin":30},
+ "region:casa":{"actions":[
+   {"title":"Escalader le ticket prioritaire chez l’opérateur","owner":"Réseau","eta":"5 min","effect":"Intervention terrain plus rapide","recommended":true},
+   {"title":"Envoyer un SMS aux assurés ayant rendez-vous","owner":"Relation client","eta":"15 min","effect":"Évite des déplacements inutiles"},
+   {"title":"Renforcer Casa-Bourgogne et Casa-Hay Hassani","owner":"Direction régionale","eta":"30 min","effect":"Absorbe les visiteurs réorientés"}],
+  "impact":[{"label":"Agents sans accès","value":45},{"label":"Visiteurs attendus d’ici midi","value":300}],"escalateMin":30}
+}
+</script>
+<script>
+/* Executive features: next best actions, business impact, share brief. Shared by Atlas Pulse and CNSS Pulse. */
+window.XF = (function(){
+  let CFG = null, EX = {}, req = {}, current = null, shareAud = 'team', ticker = null;
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const T = {
+    en:{impact:'Business impact · live',nba:'Next best actions',rec:'Recommended',inprog:'Already in progress',ask:'Ask the NOC to apply',sent:'Request sent · ',accepted:'NOC accepted · in progress since ',perMin:' per minute',soFar:'so far',share:'Share brief',shareTitle:'Share the brief',team:'For the team',board:'For the board',shareBtn:'Share…',copy:'Copy text',email:'Email',back:'Back',copied:'Copied. Paste it in email, WhatsApp or Teams.',copyFail:'Select the text and copy it.',toastReq:'Request sent to the NOC with your approval',toastAcc:'The NOC accepted your request',esc:'Crisis committee threshold (sample policy)',left:' min left',over:'Threshold passed: convene the crisis committee',sample:'Sent from {app} · sample data',what:'What',impactL:'Impact',cause:'Cause',doing:'Being done',next:'Recommended next steps',since:' since ',update:'I will keep you posted.',expected:'Expected fix: about ',note:'Nothing is changed from the phone: the request goes to the NOC, which applies it.',min:' min',noShare:'Sharing is not available here. Use Copy text.'},
+    fr:{impact:'Impact métier · en direct',nba:'Prochaines meilleures actions',rec:'Recommandée',inprog:'Déjà en cours',ask:'Demander à l’exploitation',sent:'Demande envoyée · ',accepted:'Acceptée par l’exploitation · en cours depuis ',perMin:' par minute',soFar:'depuis le début',share:'Partager la synthèse',shareTitle:'Partager la synthèse',team:'Pour l’équipe',board:'Pour le comité de direction',shareBtn:'Partager…',copy:'Copier le texte',email:'E-mail',back:'Retour',copied:'Copié. Collez-le dans un e-mail, WhatsApp ou Teams.',copyFail:'Sélectionnez le texte et copiez-le.',toastReq:'Demande envoyée à l’exploitation avec votre accord',toastAcc:'L’exploitation a accepté votre demande',esc:'Seuil cellule de crise (politique d’exemple)',left:' min restantes',over:'Seuil dépassé : réunir la cellule de crise',sample:'Envoyé depuis {app} · données fictives',what:'Quoi',impactL:'Impact',cause:'Cause',doing:'En cours',next:'Prochaines étapes recommandées',since:' depuis ',update:'Je vous tiens informé.',expected:'Rétablissement estimé : environ ',note:'Rien n’est modifié depuis le téléphone : la demande part à l’exploitation, qui l’applique.',min:' min',noShare:'Le partage n’est pas disponible ici. Utilisez Copier le texte.'}
+  };
+  const L = () => T[CFG.lang];
+  const org = () => typeof CFG.org==='function' ? CFG.org() : CFG.org;
+  const nf = v => Math.round(v).toLocaleString(CFG.lang==='fr'?'fr-FR':'en-US');
+  const hhmm = d => d.toTimeString().slice(0,5);
+
+  function init(cfg){
+    CFG = cfg; EX = JSON.parse(document.getElementById('xf-data').textContent);
+    const st = document.createElement('style'); st.textContent = CSS; document.head ? document.head.appendChild(st) : document.body.appendChild(st);
+    const toast = document.createElement('div'); toast.id='xf-toast'; toast.className='xf-toast'; toast.hidden=true; toast.setAttribute('role','status');
+    document.getElementById('device').appendChild(toast);
+    document.addEventListener('click', onClick);
+    ticker = setInterval(tick, 1000);
+  }
+  function reset(){ req = {}; }
+  function toast(msg){ const t=document.getElementById('xf-toast'); t.textContent=msg; t.hidden=false; clearTimeout(t._h); t._h=setTimeout(()=>t.hidden=true,3500); }
+
+  function startOf(inc){ return Date.now() - inc.minutesAgo*60000; }
+  function impactHTML(key, inc){
+    const x = EX[key]; if (!x || !x.impact) return '';
+    const s0 = startOf(inc);
+    const tiles = x.impact.map(it => {
+      if (it.perMin){ return `<div class="kpi ${it.money?'vbad':'bad'}"><small>${esc(it.label)}</small><b class="num" data-xf-rate="${it.perMin}" data-xf-start="${s0}" data-xf-unit="${esc(it.unit||'')}">—</b><span>+${nf(it.perMin)}${it.unit?' '+esc(it.unit):''}${L().perMin}</span></div>`; }
+      return `<div class="kpi"><small>${esc(it.label)}</small><b class="num">${nf(it.value)}${it.unit?' <span style="display:inline;font-size:.8rem">'+esc(it.unit)+'</span>':''}</b><span>${esc(it.note||'')}</span></div>`;
+    }).join('');
+    const escl = x.escalateMin ? `<div class="xf-esc" data-xf-esc="${x.escalateMin}" data-xf-start="${s0}"><div class="xf-esc-top"><span>${L().esc}</span><b class="num"></b></div><div class="xf-bar"><i></i></div></div>` : '';
+    return `<div class="card xf-impact"><h3>${L().impact}</h3><div class="kpis">${tiles}</div>${escl}</div>`;
+  }
+  function actionsHTML(key){
+    const x = EX[key]; if (!x || !x.actions) return '';
+    return `<div class="card xf-nba" data-xf-key="${esc(key)}"><h3>${L().nba}</h3><ol class="xf-list">${x.actions.map((a,i)=>{
+      const r = req[key+'#'+i];
+      let ctl;
+      if (a.inProgress) ctl = `<span class="chip ok">${L().inprog}</span>`;
+      else if (r && r.stage==='accepted') ctl = `<span class="chip ok">${L().accepted}${r.acc}</span>`;
+      else if (r) ctl = `<span class="chip info">${L().sent}${r.at}</span>`;
+      else ctl = `<button class="btn${a.recommended?'':' ghost'} xf-req" data-xf-req="${esc(key)}#${i}">${L().ask}</button>`;
+      return `<li><div class="xf-top"><b>${esc(a.title)}</b>${a.recommended?`<span class="chip warn">${L().rec}</span>`:''}</div><div class="xf-meta">${esc(a.owner)} · ${esc(a.eta)} · ${esc(a.effect)}</div>${ctl}</li>`;
+    }).join('')}</ol><p class="xf-note">${L().note}</p></div>`;
+  }
+  // Called after the detail sheet is rendered.
+  function decorate(key, ent, name){
+    const body = document.getElementById('sheetBody'); const inc = ent.incident;
+    current = { key, inc, name, status: ent.status, reopen: CFG.reopen.bind(null, key) };
+    if (!inc) return;
+    const kp = body.querySelector('.kpis');
+    if (kp) kp.insertAdjacentHTML('afterend', impactHTML(key, inc));
+    const cards = body.querySelectorAll(':scope > .card');
+    const after = cards[2] || cards[cards.length-1]; // chart, impact, cause → after cause
+    if (after) after.insertAdjacentHTML('afterend', actionsHTML(key));
+    const ask = body.querySelector(':scope > .btn[data-ask]');
+    if (ask){ const row=document.createElement('div'); row.className='xf-row'; ask.replaceWith(row); row.appendChild(ask); ask.style.alignSelf=''; row.insertAdjacentHTML('beforeend', `<button class="btn ghost" data-xf-share="${esc(key)}">${L().share}</button>`); }
+    tick();
+  }
+  // Called after the overview renders, with the top incident (or null).
+  function overview(top){
+    if (!top) return; const acts = document.querySelector('#scr-overview .brief .acts'); if (!acts) return;
+    current = current && current.key===top.key ? current : { key: top.key, inc: top.inc, name: top.name, status: top.status, reopen: CFG.reopen.bind(null, top.key) };
+    acts.insertAdjacentHTML('beforeend', `<button class="btn ghost" data-xf-share="${esc(top.key)}" data-xf-name="${esc(top.name)}">${L().share}</button>`);
+    overview._top = top;
+  }
+
+  function briefText(aud){
+    const c = current, i = c.inc, x = EX[c.key] || {}, l = L(), acts = x.actions || [];
+    const top = acts.find(a=>a.inProgress) || acts.find(a=>a.recommended) || acts[0];
+    if (aud === 'board'){
+      let t = `${c.name}${l.since}${i.start} : ${i.headline}.`.replace(' :', CFG.lang==='fr'?' :':':');
+      t += `\n${i.impact.split('. ')[0].replace(/\.$/,'')}.`;
+      const rate = (x.impact||[]).find(it=>it.money);
+      if (rate) t += ` ${rate.label}: ${nf(rate.perMin*((Date.now()-startOf(i))/60000))} ${rate.unit} ${l.soFar}.`;
+      if (top) t += `\n${top.title}. ${l.expected}${top.eta}.`;
+      t += `\n${l.update}`;
+      return t;
+    }
+    let t = `[${org()}] ${c.name}${l.since}${i.start}\n\n${l.what}: ${i.headline}.\n${l.impactL}: ${i.impact}\n${l.cause}: ${i.cause}\n${l.doing}: ${i.action}`;
+    if (acts.length) t += `\n\n${l.next}:\n` + acts.map((a,k)=>`${k+1}. ${a.title} (${a.owner}, ${a.eta})`).join('\n');
+    t += `\n\n— ${l.sample.replace('{app}', CFG.app)}`;
+    return t;
+  }
+  function openShare(key){
+    if (!current || current.key !== key){ const top = overview._top; if (top && top.key===key) current = { key, inc: top.inc, name: top.name, status: top.status, reopen: CFG.reopen.bind(null, key) }; }
+    if (!current) return;
+    const l = L(), txt = briefText(shareAud);
+    const subj = `${org()} · ${current.name}`;
+    document.getElementById('sheetBody').innerHTML = `
+      <div class="hd"><div><span class="chip ${current.status}">${esc(current.name)}</span><h2>${l.shareTitle}</h2></div>
+        <button class="x" data-xf-back aria-label="${l.back}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button></div>
+      <div class="seg"><button data-xf-aud="team" aria-pressed="${shareAud==='team'}">${l.team}</button><button data-xf-aud="board" aria-pressed="${shareAud==='board'}">${l.board}</button></div>
+      <textarea id="xf-text" class="xf-text" rows="${shareAud==='board'?7:14}" readonly>${esc(txt)}</textarea>
+      <div class="xf-row"><button class="btn" data-xf-native>${l.shareBtn}</button><button class="btn ghost" data-xf-copy>${l.copy}</button><a class="btn ghost" href="mailto:?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(txt)}">${l.email}</a></div>`;
+    document.getElementById('sheet').hidden = false; document.getElementById('scrim').hidden = false;
+  }
+  async function copyText(){
+    const ta = document.getElementById('xf-text');
+    try { await navigator.clipboard.writeText(ta.value); toast(L().copied); }
+    catch(e){ ta.focus(); ta.select(); toast(L().copyFail); }
+  }
+  async function nativeShare(){
+    const ta = document.getElementById('xf-text');
+    if (navigator.share){ try { await navigator.share({ title: org(), text: ta.value }); return; } catch(e){ if (e && e.name==='AbortError') return; } }
+    copyText();
+  }
+  function request(id){
+    const now = hhmm(new Date()); req[id] = { at: now, stage:'sent' };
+    toast(L().toastReq); refreshNBA();
+    setTimeout(()=>{ if (req[id]){ req[id].stage='accepted'; req[id].acc = hhmm(new Date()); toast(L().toastAcc); refreshNBA(); } }, 6000);
+  }
+  function refreshNBA(){ const el = document.querySelector('#sheetBody .xf-nba'); if (el) el.outerHTML = actionsHTML(el.dataset.xfKey); }
+
+  function tick(){
+    document.querySelectorAll('[data-xf-rate]').forEach(el=>{
+      const m = (Date.now() - Number(el.dataset.xfStart))/60000; el.textContent = nf(Number(el.dataset.xfRate)*m) + (el.dataset.xfUnit?' '+el.dataset.xfUnit:'');
+    });
+    document.querySelectorAll('[data-xf-esc]').forEach(el=>{
+      const lim = Number(el.dataset.xfEsc), m = (Date.now() - Number(el.dataset.xfStart))/60000, left = Math.max(0, Math.ceil(lim - m));
+      el.querySelector('b').textContent = left>0 ? left + L().left : L().over;
+      el.querySelector('i').style.width = Math.min(100, m/lim*100).toFixed(1)+'%';
+      el.classList.toggle('over', left<=0);
+    });
+  }
+  function onClick(e){
+    const t = e.target.closest('[data-xf-req],[data-xf-share],[data-xf-aud],[data-xf-copy],[data-xf-native],[data-xf-back]'); if (!t) return;
+    e.stopPropagation();
+    if (t.dataset.xfReq) request(t.dataset.xfReq);
+    else if (t.dataset.xfShare){ openShare(t.dataset.xfShare); }
+    else if (t.dataset.xfAud){ shareAud = t.dataset.xfAud; openShare(current.key); }
+    else if (t.hasAttribute('data-xf-copy')) copyText();
+    else if (t.hasAttribute('data-xf-native')) nativeShare();
+    else if (t.hasAttribute('data-xf-back')) current.reopen();
+  }
+  // For Copilot: the extra facts about an incident.
+  function prompt(key){ const x = EX[key]; if (!x) return {}; return { recommended_actions: (x.actions||[]).map(a=>({action:a.title, owner:a.owner, time:a.eta, effect:a.effect, already_in_progress:!!a.inProgress, recommended:!!a.recommended})), business_impact: (x.impact||[]).map(it=> it.perMin ? {metric:it.label, per_minute:it.perMin, unit:it.unit||''} : {metric:it.label, value:it.value, unit:it.unit||''}), crisis_threshold_minutes: x.escalateMin||null }; }
+  function offline(q, key){
+    const x = EX[key]; if (!x || !x.actions) return null;
+    if (!/what (should|do|can) (we|i) do|what to do|next step|recommend|\baction|que faire|faut-il faire|que fait-on|recommand|prochaine/i.test(q)) return null;
+    const head = CFG.lang==='fr' ? 'Voici les actions recommandées :' : 'Here is what I recommend:';
+    return head + '\n' + x.actions.map(a=>`- **${a.title}** (${a.owner}, ${a.eta}): ${a.effect}${a.inProgress?(CFG.lang==='fr'?' · déjà en cours':' · already in progress'):''}`).join('\n');
+  }
+
+  const CSS = `
+.xf-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px}
+.xf-list li{display:flex;flex-direction:column;gap:6px;align-items:flex-start;padding-top:12px;border-top:1px solid var(--line)}
+.xf-list li:first-child{border-top:0;padding-top:0}
+.xf-top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.xf-top b{font-size:.92rem}
+.xf-meta{font-size:.8rem;color:var(--ink-2)}
+.xf-list .btn{padding:7px 12px;font-size:.8rem}
+.xf-note{font-size:.74rem;color:var(--ink-3);margin:12px 0 0!important}
+.xf-impact .kpis{margin-bottom:2px}
+.xf-esc{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+.xf-esc-top{display:flex;justify-content:space-between;gap:10px;font-size:.78rem;color:var(--ink-2)}
+.xf-esc-top b{white-space:nowrap;color:var(--warn)}
+.xf-esc.over .xf-esc-top b{color:var(--crit)}
+.xf-bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.xf-bar i{display:block;height:100%;width:0;background:var(--warn);border-radius:3px}
+.xf-esc.over .xf-bar i{background:var(--crit)}
+.xf-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.xf-row a.btn{text-decoration:none;display:inline-block}
+.xf-text{width:100%;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);font:inherit;font-size:.86rem;line-height:1.5;padding:12px 14px;resize:vertical}
+.xf-toast{position:absolute;left:16px;right:16px;bottom:84px;z-index:40;background:var(--ink);color:var(--bg);border-radius:14px;padding:11px 14px;font-size:.85rem;box-shadow:var(--shadow)}
+`;
+  return { init, decorate, overview, prompt, offline, reset };
+})();
+
+</script>
 <script>
 (function(){
 const D = JSON.parse(document.getElementById('dataset').textContent);
@@ -471,6 +668,7 @@ function renderOverview(){
   $('#badge').hidden=!m.issues.length; $('#badge').textContent=m.issues.length;
   $('#badgeR').hidden=!nR; $('#badgeR').textContent=nR;
   $('#liveDot').style.background = m.worst==='ok'?'':`var(--${m.worst})`;
+  const t0=m.issues[0]; XF.overview(t0 ? {key:t0.kind+':'+t0.id, inc:t0.incident, name:short(t0), status:t0.status} : null);
 }
 function renderRegions(){
   const m=model();
@@ -520,6 +718,7 @@ function openEntity(ref){
     <div class="card"><h3>Preuves issues des paquets</h3><ul class="ev">${i.evidence.map(x=>`<li><span>${esc(x)}</span></li>`).join('')}</ul></div>
     <div class="card"><h3>${kind==='region'?'Agences concernées':'Régions concernées'}</h3><ul class="agl">${i.sites.map(s=>`<li><span>${esc(s)}</span><span class="chip ${e.status}">${WORD[e.status]}</span></li>`).join('')}</ul></div>`:''}
     <button class="btn" style="align-self:flex-start" data-ask="${esc(i?'Explique-moi simplement le problème « '+i.headline+' ». Dois-je m’inquiéter ?':'Comment se porte '+(kind==='region'?'la région '+e.name:e.name)+' aujourd’hui ?')}">Demander à Copilot</button>`;
+  XF.decorate(kind+':'+id, e, kind==='region'?'Région '+e.name:e.name);
   showSheet();
 }
 
@@ -547,7 +746,7 @@ function act(a){
     const sc = a==='svc'?D.scenarios.service:D.scenarios.agency, m=model(), e=(sc.kind==='service'?m.svcs:m.regs).find(x=>x.id===sc.target);
     setTimeout(()=>push({...e,kind:sc.kind}),600); }
   if (a==='resolve'){ state.resolved=true; hideSheet(); renderAll(); }
-  if (a==='reset'){ state.svc=false; state.ag=false; state.resolved=false; state.chat=[]; hideSheet(); renderAll(); }
+  if (a==='reset'){ state.svc=false; state.ag=false; state.resolved=false; state.chat=[]; XF.reset(); hideSheet(); renderAll(); }
 }
 function setTab(t){
   state.tab=t; document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected', b.dataset.tab===t));
@@ -561,8 +760,8 @@ function context(){
   const m=model();
   const inc = i => i ? {depuis:i.start, titre:i.headline, resume:i.summary, cause_probable:i.cause, impact:i.impact, action_en_cours:i.action, lieux:i.sites, preuves:i.evidence} : null;
   return JSON.stringify({ organisation:'CNSS (données fictives de démonstration)', heure:hhmm(new Date()),
-    services:m.svcs.map(s=>({nom:s.name, technologie:s.protocol, volume:s.volume, etat:WORD[s.status], score:s.score, [s.respLabel]:fmtResp(s.kpi.resp,s.kpi.respUnit), habituel:fmtResp(s.kpi.respBase,s.kpi.respUnit), taux_echec:fmtPct(s.kpi.fail), disponibilite:fmtPct(s.kpi.avail), incident:inc(s.incident)})),
-    regions:m.regs.map(r=>({nom:r.name, agences:r.agencies, agences_coupees:r.kpi.down||0, agences_sur_secours:r.kpi.backup||0, reponse_guichet:fmtResp(r.kpi.resp), agents:r.agents, etat:WORD[r.status], score:r.score, incident:inc(r.incident)})),
+    services:m.svcs.map(s=>({nom:s.name, technologie:s.protocol, volume:s.volume, etat:WORD[s.status], score:s.score, [s.respLabel]:fmtResp(s.kpi.resp,s.kpi.respUnit), habituel:fmtResp(s.kpi.respBase,s.kpi.respUnit), taux_echec:fmtPct(s.kpi.fail), disponibilite:fmtPct(s.kpi.avail), incident:s.incident?{...inc(s.incident), ...XF.prompt('service:'+s.id)}:null})),
+    regions:m.regs.map(r=>({nom:r.name, agences:r.agencies, agences_coupees:r.kpi.down||0, agences_sur_secours:r.kpi.backup||0, reponse_guichet:fmtResp(r.kpi.resp), agents:r.agents, etat:WORD[r.status], score:r.score, incident:r.incident?{...inc(r.incident), ...XF.prompt('region:'+r.id)}:null})),
     total_agences:m.agTotal, mois_en_cours:D.month, ddos_24h:D.security, menaces_detectees:D.threats, evenements_precedents:D.history });
 }
 const RULES = () => `Tu es nGenius Copilot dans l'application mobile du Directeur Général de la CNSS (Caisse Nationale de Sécurité Sociale, Maroc). Il vient d'être nommé et veut une visibilité complète sur les services et les agences. Ceci est une démonstration commerciale sur des données fictives.
@@ -571,7 +770,8 @@ Règles :
 - Commence par la réponse en une phrase. Puis au plus 3 phrases courtes ou 3 puces ("- ").
 - Langage de dirigeant : impact pour les assurés, les employeurs et les agences, depuis quand, pourquoi, ce qui est fait, faut-il s'inquiéter. Explique tout terme technique en quelques mots.
 - Utilise les chiffres exacts des données. N'invente jamais de chiffre, de nom ou d'événement. Si les données ne couvrent pas la question, dis-le et propose de demander à l'équipe d'exploitation.
-- L'application est en lecture seule : le DG ne peut rien modifier d'ici.
+- Si on te demande quoi faire, utilise recommended_actions (précise ce qui est déjà en cours) et rappelle que le DG peut toucher « Demander à l’exploitation » sur l'incident : l'exploitation l'applique, rien ne change depuis le téléphone.
+- Pour les questions d'impact, utilise business_impact ; les valeurs per_minute s'accumulent depuis le début de l'incident.
 - Réponds dans la langue de la question (français, anglais, arabe ou darija).
 - Pas de titres ni de tableaux. Tu peux mettre un chiffre clé en **gras**.
 
@@ -584,6 +784,7 @@ function md(t){
 }
 function offline(q){
   const m=model(), e=m.issues[0], ql=q.toLowerCase();
+  if (e){ const xa=XF.offline(q, e.kind+':'+e.id); if (xa) return xa; }
   if (/ddos|attaq|attack|cyber|menace|pirat|hack|sécurité|securite/.test(ql)) return `${D.security.attacks24h} attaques DDoS ont été bloquées automatiquement en 24 heures. La plus forte, ${D.security.largest}, visait ${D.security.target} à ${D.security.time}. ${D.security.result}\n- Menace détectée : ${D.threats.text}`;
   if (/agence|branch|région|region|guichet/.test(ql)) return `${m.agTotal-m.agDown} agences sur ${m.agTotal} sont en ligne.\n- Sur liaison de secours : ${m.agBackup}\n- Coupées du réseau : ${m.agDown}${m.regs.filter(r=>r.incident).map(r=>`\n- ${r.name} : ${r.incident.headline}`).join('')}`;
   if (!e) return `Tout fonctionne normalement. Les ${m.svcs.length} services et les ${m.agTotal} agences sont dans leur plage habituelle : rien ne demande votre attention.`;
@@ -632,6 +833,7 @@ $('#demoBtn').addEventListener('click', openDemo);
 $('#scrim').addEventListener('click', hideSheet);
 document.addEventListener('keydown', ev=>{ if (ev.key==='Escape') hideSheet(); });
 $('#composer').addEventListener('submit', ev=>{ ev.preventDefault(); const v=$('#q').value; $('#q').value=''; ask(v); });
+XF.init({lang:'fr', org:'CNSS', app: document.title, reopen: k => openEntity(k)});
 renderAll();
 setInterval(()=>{ $('#updated').textContent='En direct · mis à jour '+hhmm(new Date()); },30000);
 if (window.claude && window.claude.use){
